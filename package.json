@@ -1,0 +1,30 @@
+{
+  "name": "mozy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.17.0",
+  "scripts": {
+    "attestcoin:preflight": "tsx scripts/attestcoin/cli.ts preflight",
+    "attestcoin:transfer": "tsx scripts/attestcoin/cli.ts transfer",
+    "attestcoin:inspect": "tsx scripts/attestcoin/cli.ts inspect",
+    "attestcoin:prove": "tsx scripts/attestcoin/cli.ts prove",
+    "attestcoin:verify": "tsx scripts/attestcoin/cli.ts verify",
+    "attestcoin:evidence:check": "tsx scripts/attestcoin/cli.ts evidence-check",
+    "attestcoin:test": "tsx --test scripts/attestcoin/**/*.test.ts",
+    "attestcoin:typecheck": "tsc --noEmit",
+    "attestcoin:contracts:build": "forge build"
+  },
+  "dependencies": {
+    "@gluwa/usc-contracts": "0.1.2",
+    "@gluwa/usc-sdk": "0.18.0",
+    "dotenv": "17.4.2",
+    "ethers": "6.17.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "26.1.0",
+    "tsx": "4.22.4",
+    "typescript": "6.0.2"
+  }
+}

@@ -61,3 +61,10 @@ __pycache__/
 next-env.d.ts
 public/_pagefind/
 mockup*
+.env
+.env.*
+!.env.example
+.attestcoin/
+node_modules/
+out/
+cache/
