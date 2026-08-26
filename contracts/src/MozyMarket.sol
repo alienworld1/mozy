@@ -3,10 +3,21 @@ pragma solidity ^0.8.30;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {MarketRegistry} from "./MarketRegistry.sol";
 import {SettlementVault} from "./SettlementVault.sol";
 import {PricingLibrary} from "./PricingLibrary.sol";
-import {PricingMode, MandateStatus, MarketConfig, Mandate, VaultAccount} from "./ProtocolTypes.sol";
+import {
+    PricingMode,
+    MandateStatus,
+    ReservationStatus,
+    ReservationEligibility,
+    MarketConfig,
+    Mandate,
+    VaultAccount,
+    Reservation,
+    ReservationQuote
+} from "./ProtocolTypes.sol";
 import {
     ZeroAddress,
     ProtocolPaused,
@@ -23,18 +34,31 @@ import {
     InvalidRefundAmount,
     RefundExceedsFreeBalance,
     OutstandingMandateBalance,
-    AccountingInvariantViolation
+    AccountingInvariantViolation,
+    InvalidBondPolicy,
+    ReservationNotFound,
+    ReservationAlreadyResolved,
+    ReservationNotExpired,
+    ReservationDurationUnavailable,
+    ExpectedPayoutMismatch,
+    InsufficientPayoutBudget,
+    ZeroBond
 } from "./ProtocolErrors.sol";
 
 /// @notice Owns Acquisition Mandate identity, terms, quantity, and lifecycle.
 contract MozyMarket is Ownable, ReentrancyGuard {
+    uint256 public constant BPS_DENOMINATOR = 10_000;
     MarketRegistry public immutable registry;
+    uint256 public immutable bondRateBps;
+    uint256 public immutable bondCap;
     SettlementVault public vault;
     bool public protocolPaused;
     uint256 public nextMandateId = 1;
+    uint256 public nextReservationId = 1;
 
     mapping(uint256 mandateId => Mandate) private _mandates;
     mapping(uint256 mandateId => address settlementToken) private _mandateSettlementTokens;
+    mapping(uint256 reservationId => Reservation) private _reservations;
 
     event ProtocolPauseChanged(bool paused, address indexed admin);
     event VaultConfigured(address indexed vault, address indexed admin);
@@ -63,10 +87,39 @@ contract MozyMarket is Ownable, ReentrancyGuard {
     event MandateExpired(uint256 indexed mandateId, address indexed caller, uint256 refundableAmount);
     event BuyerRefunded(uint256 indexed mandateId, address indexed buyer, uint256 amount, uint256 cumulativeRefunded);
     event MandateClosed(uint256 indexed mandateId, address indexed caller);
+    event ReservationCreated(
+        uint256 indexed reservationId,
+        uint256 indexed mandateId,
+        address indexed solver,
+        uint256 quantity,
+        uint256 lockedPayout,
+        uint256 bondAmount,
+        uint64 deliveryDeadline
+    );
+    event ReservationExpired(
+        uint256 indexed reservationId,
+        uint256 indexed mandateId,
+        address indexed solver,
+        uint256 releasedQuantity,
+        uint256 unlockedPayout
+    );
+    event ReservationBondForfeited(
+        uint256 indexed reservationId, address indexed buyer, address indexed token, uint256 amount
+    );
 
-    constructor(address protocolAdmin, MarketRegistry marketRegistry) Ownable(protocolAdmin) {
+    constructor(
+        address protocolAdmin,
+        MarketRegistry marketRegistry,
+        uint256 reservationBondRateBps,
+        uint256 reservationBondCap
+    ) Ownable(protocolAdmin) {
         if (protocolAdmin == address(0) || address(marketRegistry) == address(0)) revert ZeroAddress();
+        if (reservationBondRateBps == 0 || reservationBondRateBps > BPS_DENOMINATOR || reservationBondCap == 0) {
+            revert InvalidBondPolicy();
+        }
         registry = marketRegistry;
+        bondRateBps = reservationBondRateBps;
+        bondCap = reservationBondCap;
     }
 
     function configureVault(SettlementVault settlementVault) external onlyOwner {
@@ -255,6 +308,94 @@ contract MozyMarket is Ownable, ReentrancyGuard {
         endPosition = startPosition + quantity;
     }
 
+    function quoteReservation(uint256 mandateId, uint256 quantity)
+        external
+        view
+        returns (ReservationQuote memory quote)
+    {
+        if (address(vault) == address(0)) revert ProtocolNotConfigured();
+        Mandate storage mandate = _requireMandate(mandateId);
+        MarketConfig memory market = registry.getMarket(mandate.marketId);
+        quote = _buildReservationQuote(mandate, market, quantity);
+    }
+
+    function createReservation(uint256 mandateId, uint256 quantity, uint256 expectedPayout)
+        external
+        nonReentrant
+        returns (uint256 reservationId)
+    {
+        _requireConfiguredAndRiskEnabled();
+        Mandate storage mandate = _requireMandate(mandateId);
+        if (mandate.status != MandateStatus.Open) revert InvalidMandateStatus();
+        MarketConfig memory market = registry.requireEnabledMarket(mandate.marketId);
+        if (block.timestamp > mandate.mandateExpiry - mandate.reservationDuration) {
+            revert ReservationDurationUnavailable();
+        }
+
+        ReservationQuote memory quote = _buildReservationQuote(mandate, market, quantity);
+        if (quote.payout != expectedPayout) revert ExpectedPayoutMismatch();
+        if (quote.eligibility == ReservationEligibility.InsufficientPayoutBudget) {
+            revert InsufficientPayoutBudget();
+        }
+        if (quote.bondAmount == 0) revert ZeroBond();
+
+        reservationId = nextReservationId++;
+        uint64 createdAt = uint64(block.timestamp);
+        uint64 deliveryDeadline = createdAt + mandate.reservationDuration;
+        _reservations[reservationId] = Reservation({
+            id: reservationId,
+            mandateId: mandateId,
+            solver: msg.sender,
+            quantity: quantity,
+            lockedPayout: quote.payout,
+            bondAmount: quote.bondAmount,
+            createdAt: createdAt,
+            deliveryDeadline: deliveryDeadline,
+            status: ReservationStatus.Active
+        });
+        mandate.reservedAmount += quantity;
+        vault.lock(mandateId, market.settlementToken, quote.payout);
+        vault.collectBond(reservationId, market.settlementToken, msg.sender, quote.bondAmount);
+
+        emit ReservationCreated(
+            reservationId, mandateId, msg.sender, quantity, quote.payout, quote.bondAmount, deliveryDeadline
+        );
+    }
+
+    function expireReservation(uint256 reservationId) external nonReentrant {
+        Reservation storage reservation = _requireReservation(reservationId);
+        if (reservation.status != ReservationStatus.Active) revert ReservationAlreadyResolved();
+        if (block.timestamp < reservation.deliveryDeadline) revert ReservationNotExpired();
+
+        Mandate storage mandate = _requireMandate(reservation.mandateId);
+        address settlementToken = _mandateSettlementTokens[reservation.mandateId];
+        reservation.status = ReservationStatus.Expired;
+        mandate.reservedAmount -= reservation.quantity;
+        vault.unlock(reservation.mandateId, settlementToken, reservation.lockedPayout);
+        vault.forfeitBond(reservationId, settlementToken, reservation.solver, mandate.buyer, reservation.bondAmount);
+
+        emit ReservationExpired(
+            reservationId, reservation.mandateId, reservation.solver, reservation.quantity, reservation.lockedPayout
+        );
+        emit ReservationBondForfeited(reservationId, mandate.buyer, settlementToken, reservation.bondAmount);
+    }
+
+    function getReservation(uint256 reservationId) external view returns (Reservation memory) {
+        return _requireReservation(reservationId);
+    }
+
+    function getReservationRequirements(uint256 reservationId)
+        external
+        view
+        returns (MarketConfig memory market, address deliveryWallet, address settlementToken)
+    {
+        Reservation storage reservation = _requireReservation(reservationId);
+        Mandate storage mandate = _requireMandate(reservation.mandateId);
+        market = registry.getMarket(mandate.marketId);
+        deliveryWallet = mandate.deliveryWallet;
+        settlementToken = _mandateSettlementTokens[reservation.mandateId];
+    }
+
     function getMandate(uint256 mandateId) external view returns (Mandate memory) {
         return _requireMandate(mandateId);
     }
@@ -275,9 +416,77 @@ contract MozyMarket is Ownable, ReentrancyGuard {
         if (protocolPaused) revert ProtocolPaused();
     }
 
+    function _buildReservationQuote(Mandate storage mandate, MarketConfig memory market, uint256 quantity)
+        private
+        view
+        returns (ReservationQuote memory quote)
+    {
+        uint256 startPosition = mandate.acquiredAmount + mandate.reservedAmount;
+        uint256 payout = PricingLibrary.quote(
+            mandate.pricingMode,
+            mandate.targetAmount,
+            market.foreignTokenDecimals,
+            mandate.startPrice,
+            mandate.endPrice,
+            startPosition,
+            quantity
+        );
+        uint256 calculatedBond = Math.mulDiv(payout, bondRateBps, BPS_DENOMINATOR);
+        uint256 bondAmount = Math.min(calculatedBond, bondCap);
+        if (bondAmount == 0) revert ZeroBond();
+        uint64 eligibleUntil = mandate.mandateExpiry - mandate.reservationDuration;
+
+        ReservationEligibility eligibility = ReservationEligibility.Eligible;
+        if (protocolPaused) {
+            eligibility = ReservationEligibility.ProtocolPaused;
+        } else if (!market.enabled) {
+            eligibility = ReservationEligibility.MarketDisabled;
+        } else if (mandate.status != MandateStatus.Open) {
+            eligibility = ReservationEligibility.MandateNotOpen;
+        } else if (block.timestamp > eligibleUntil) {
+            eligibility = ReservationEligibility.InsufficientLifetime;
+        } else if (vault.getAccount(mandate.id).free < payout) {
+            eligibility = ReservationEligibility.InsufficientPayoutBudget;
+        }
+
+        quote = ReservationQuote({
+            mandateId: mandate.id,
+            startPosition: startPosition,
+            quantity: quantity,
+            endPosition: startPosition + quantity,
+            payout: payout,
+            bondAmount: bondAmount,
+            reservationDuration: mandate.reservationDuration,
+            eligibleUntil: eligibleUntil,
+            sourceChainKey: market.sourceChainKey,
+            foreignToken: market.foreignToken,
+            deliveryWallet: mandate.deliveryWallet,
+            settlementToken: _mandateSettlementTokens[mandate.id],
+            eligibility: eligibility
+        });
+    }
+
+    /// @dev Module 4's proof-gated transition. It is intentionally unreachable from this module's production ABI.
+    function _settleReservation(uint256 reservationId) internal {
+        Reservation storage reservation = _requireReservation(reservationId);
+        if (reservation.status != ReservationStatus.Active) revert ReservationAlreadyResolved();
+        Mandate storage mandate = _requireMandate(reservation.mandateId);
+        address settlementToken = _mandateSettlementTokens[reservation.mandateId];
+        reservation.status = ReservationStatus.Settled;
+        mandate.reservedAmount -= reservation.quantity;
+        mandate.acquiredAmount += reservation.quantity;
+        vault.spend(reservation.mandateId, settlementToken, reservation.solver, reservation.lockedPayout);
+        vault.returnBond(reservationId, settlementToken, reservation.solver, reservation.bondAmount);
+    }
+
     function _requireMandate(uint256 mandateId) private view returns (Mandate storage mandate) {
         mandate = _mandates[mandateId];
         if (mandate.buyer == address(0)) revert MandateNotFound();
+    }
+
+    function _requireReservation(uint256 reservationId) private view returns (Reservation storage reservation) {
+        reservation = _reservations[reservationId];
+        if (reservation.solver == address(0)) revert ReservationNotFound();
     }
 
     function _requireBuyer(Mandate storage mandate) private view {

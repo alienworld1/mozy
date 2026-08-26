@@ -16,6 +16,21 @@ enum MandateStatus {
     Closed
 }
 
+enum ReservationStatus {
+    Active,
+    Expired,
+    Settled
+}
+
+enum ReservationEligibility {
+    Eligible,
+    ProtocolPaused,
+    MarketDisabled,
+    MandateNotOpen,
+    InsufficientLifetime,
+    InsufficientPayoutBudget
+}
+
 struct MarketConfig {
     uint64 sourceChainKey;
     address foreignToken;
@@ -50,4 +65,39 @@ struct VaultAccount {
     uint256 reserved;
     uint256 free;
     uint256 refunded;
+}
+
+struct Reservation {
+    uint256 id;
+    uint256 mandateId;
+    address solver;
+    uint256 quantity;
+    uint256 lockedPayout;
+    uint256 bondAmount;
+    uint64 createdAt;
+    uint64 deliveryDeadline;
+    ReservationStatus status;
+}
+
+struct ReservationQuote {
+    uint256 mandateId;
+    uint256 startPosition;
+    uint256 quantity;
+    uint256 endPosition;
+    uint256 payout;
+    uint256 bondAmount;
+    uint64 reservationDuration;
+    uint64 eligibleUntil;
+    uint64 sourceChainKey;
+    address foreignToken;
+    address deliveryWallet;
+    address settlementToken;
+    ReservationEligibility eligibility;
+}
+
+struct BondEscrow {
+    address token;
+    address solver;
+    uint256 amount;
+    bool resolved;
 }

@@ -48,7 +48,7 @@ contract ProtocolLifecycleTest is TestBase {
             new MarketRegistry(ADMIN, 1, FOREIGN_TOKEN, 18, address(token), 18, keccak256("test"));
         vm.prank(ADMIN);
         unwiredRegistry.configureReleaseMarket(_config(address(token), true));
-        MozyMarket unwired = new MozyMarket(ADMIN, unwiredRegistry);
+        MozyMarket unwired = new MozyMarket(ADMIN, unwiredRegistry, 100, 10 * UNIT);
         vm.prank(BUYER);
         vm.expectRevert(ProtocolNotConfigured.selector);
         unwired.createMandate(1, BUYER, UNIT, PricingMode.Limit, UNIT, UNIT, uint64(block.timestamp + 1 days), 1 hours);
@@ -291,7 +291,7 @@ contract ProtocolLifecycleTest is TestBase {
         returns (MarketRegistry deployedRegistry, MozyMarket deployedMarket, SettlementVault deployedVault)
     {
         deployedRegistry = new MarketRegistry(ADMIN, 1, FOREIGN_TOKEN, 18, settlementToken, 18, keccak256("test"));
-        deployedMarket = new MozyMarket(ADMIN, deployedRegistry);
+        deployedMarket = new MozyMarket(ADMIN, deployedRegistry, 100, 10 * UNIT);
         deployedVault = new SettlementVault(address(deployedMarket));
         vm.startPrank(ADMIN);
         deployedMarket.configureVault(deployedVault);

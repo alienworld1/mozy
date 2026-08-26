@@ -16,6 +16,8 @@ interface ScriptVm {
 
 /// @notice Local-only deployment for the documented Anvil QA path.
 contract DeployLocal {
+    uint256 public constant BOND_RATE_BPS = 100;
+    uint256 public constant BOND_CAP = 10 ether;
     ScriptVm private constant VM = ScriptVm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
     function run()
@@ -27,7 +29,7 @@ contract DeployLocal {
         VM.startBroadcast(privateKey);
         token = new LocalSettlementToken(admin);
         registry = new MarketRegistry(admin, 1, address(0x1234), 18, address(token), 18, keccak256("local-anvil"));
-        market = new MozyMarket(admin, registry);
+        market = new MozyMarket(admin, registry, BOND_RATE_BPS, BOND_CAP);
         vault = new SettlementVault(address(market));
         market.configureVault(vault);
         registry.configureReleaseMarket(

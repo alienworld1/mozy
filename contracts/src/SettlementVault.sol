@@ -4,7 +4,7 @@ pragma solidity ^0.8.30;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {VaultAccount} from "./ProtocolTypes.sol";
+import {VaultAccount, BondEscrow} from "./ProtocolTypes.sol";
 import {
     Unauthorized,
     ZeroAddress,
@@ -13,7 +13,12 @@ import {
     UnexpectedTokenBalanceDelta,
     VaultAccountTokenMismatch,
     RefundExceedsFreeBalance,
-    AccountingInvariantViolation
+    AccountingInvariantViolation,
+    ZeroBond,
+    BondEscrowAlreadyExists,
+    BondEscrowMismatch,
+    InsufficientBondAllowance,
+    InsufficientBondBalance
 } from "./ProtocolErrors.sol";
 
 /// @notice Holds settlement tokens and owns all mandate-level budget accounting.
@@ -22,7 +27,9 @@ contract SettlementVault is ReentrancyGuard {
 
     address public immutable marketOperator;
     mapping(uint256 mandateId => VaultAccount) private _accounts;
+    mapping(uint256 reservationId => BondEscrow) private _bondEscrows;
     mapping(address token => uint256 held) public accountedTokenBalance;
+    mapping(address token => uint256 held) public unresolvedBondBalance;
 
     modifier onlyMarketOperator() {
         if (msg.sender != marketOperator) revert Unauthorized();
@@ -127,8 +134,53 @@ contract SettlementVault is ReentrancyGuard {
         }
     }
 
+    function collectBond(uint256 reservationId, address token, address solver, uint256 amount)
+        external
+        onlyMarketOperator
+        nonReentrant
+    {
+        if (amount == 0) revert ZeroBond();
+        if (token == address(0) || solver == address(0)) revert ZeroAddress();
+        if (_bondEscrows[reservationId].token != address(0)) revert BondEscrowAlreadyExists();
+
+        IERC20 settlementToken = IERC20(token);
+        if (settlementToken.allowance(solver, address(this)) < amount) revert InsufficientBondAllowance();
+        if (settlementToken.balanceOf(solver) < amount) revert InsufficientBondBalance();
+        uint256 balanceBefore = settlementToken.balanceOf(address(this));
+        settlementToken.safeTransferFrom(solver, address(this), amount);
+        uint256 balanceAfter = settlementToken.balanceOf(address(this));
+        if (balanceAfter < balanceBefore || balanceAfter - balanceBefore != amount) {
+            revert UnexpectedTokenBalanceDelta();
+        }
+
+        _bondEscrows[reservationId] = BondEscrow({token: token, solver: solver, amount: amount, resolved: false});
+        unresolvedBondBalance[token] += amount;
+        accountedTokenBalance[token] += amount;
+    }
+
+    function forfeitBond(uint256 reservationId, address token, address solver, address buyer, uint256 amount)
+        external
+        onlyMarketOperator
+        nonReentrant
+    {
+        _resolveBond(reservationId, token, solver, buyer, amount);
+    }
+
+    /// @dev Module 4's market-only success primitive. No production caller reaches it in Module 3.
+    function returnBond(uint256 reservationId, address token, address solver, uint256 amount)
+        external
+        onlyMarketOperator
+        nonReentrant
+    {
+        _resolveBond(reservationId, token, solver, solver, amount);
+    }
+
     function getAccount(uint256 mandateId) external view returns (VaultAccount memory) {
         return _accounts[mandateId];
+    }
+
+    function getBondEscrow(uint256 reservationId) external view returns (BondEscrow memory) {
+        return _bondEscrows[reservationId];
     }
 
     function isSolvent(address token) external view returns (bool) {
@@ -145,5 +197,31 @@ contract SettlementVault is ReentrancyGuard {
         if (account.funded != account.spent + account.reserved + account.free + account.refunded) {
             revert AccountingInvariantViolation();
         }
+    }
+
+    function _resolveBond(uint256 reservationId, address token, address solver, address recipient, uint256 amount)
+        private
+    {
+        if (recipient == address(0)) revert ZeroAddress();
+        BondEscrow storage escrow = _bondEscrows[reservationId];
+        if (
+            escrow.token != token || escrow.solver != solver || escrow.amount != amount || escrow.resolved
+                || amount == 0
+        ) revert BondEscrowMismatch();
+
+        escrow.resolved = true;
+        unresolvedBondBalance[token] -= amount;
+        accountedTokenBalance[token] -= amount;
+
+        IERC20 settlementToken = IERC20(token);
+        uint256 vaultBefore = settlementToken.balanceOf(address(this));
+        uint256 recipientBefore = settlementToken.balanceOf(recipient);
+        settlementToken.safeTransfer(recipient, amount);
+        uint256 vaultAfter = settlementToken.balanceOf(address(this));
+        uint256 recipientAfter = settlementToken.balanceOf(recipient);
+        if (
+            vaultBefore < vaultAfter || vaultBefore - vaultAfter != amount || recipientAfter < recipientBefore
+                || recipientAfter - recipientBefore != amount
+        ) revert UnexpectedTokenBalanceDelta();
     }
 }
