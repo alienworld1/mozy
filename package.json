@@ -13,11 +13,18 @@
     "attestcoin:evidence:check": "tsx scripts/attestcoin/cli.ts evidence-check",
     "attestcoin:test": "tsx --test scripts/attestcoin/**/*.test.ts",
     "attestcoin:typecheck": "tsc --noEmit",
-    "attestcoin:contracts:build": "forge build"
+    "attestcoin:contracts:build": "forge build",
+    "pricing:test": "node --import tsx --test scripts/pricing/reference.test.ts",
+    "protocol:build": "forge build contracts/src",
+    "protocol:test": "forge test",
+    "protocol:deploy:local": "forge script contracts/script/DeployLocal.s.sol:DeployLocal --broadcast",
+    "protocol:deploy": "node --import tsx scripts/protocol/cli.ts deploy",
+    "protocol:inspect": "node --import tsx scripts/protocol/cli.ts inspect"
   },
   "dependencies": {
     "@gluwa/usc-contracts": "0.1.2",
     "@gluwa/usc-sdk": "0.18.0",
+    "@openzeppelin/contracts": "5.4.0",
     "dotenv": "17.4.2",
     "ethers": "6.17.0",
     "zod": "4.4.3"

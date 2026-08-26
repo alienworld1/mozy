@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1",
+  "environmentConfigVersion": "attestcoin-spike-cc3-sepolia-2026-08-25",
+  "environmentConfigHash": "0x68275545f5e042b19d3e71a3341e2cf785b9c6a6496dbcba5a8a35e5197be7fb",
+  "chainId": 102031,
+  "deployedAt": "2026-08-26T08:43:19.733Z",
+  "compiler": {
+    "version": "0.8.30",
+    "optimizer": true,
+    "optimizerRuns": 200,
+    "viaIr": true,
+    "evmVersion": "shanghai"
+  },
+  "protocolAdmin": "0x6B313ED963a947c8e63d18cdae70fE23c6b4d576",
+  "deployer": "0x6B313ED963a947c8e63d18cdae70fE23c6b4d576",
+  "contracts": {
+    "registry": "0xB846C9C94711CdFcEbDfDC62195644FA00CA5b50",
+    "market": "0xC45A62E55199840DE0e88fe43Ed3c9A2b8297a4D",
+    "vault": "0xa7c2e5B047dF90502FfD97cd707F259A5c4D999B"
+  },
+  "marketId": "1",
+  "transactions": {
+    "registryDeployment": "0x153597cd0497cfdf78045776a9e90668d39ad8f1973812f27593f8078e9b2a59",
+    "marketDeployment": "0xa989b88ed8cdeb484f4fbb64f7fd914016d64fb7e45dd389f477a622027f83ed",
+    "vaultDeployment": "0x63e19328e6b945610538fc9e188e2a255e492d17ff6802b0b60305f0c4fc8972",
+    "vaultConfiguration": "0x26260821f1d44fcf328a441f2466f1ffec1eef95378ca22ce1f67923797144b1",
+    "marketConfiguration": "0xf60bd3aeec94e78981067d1a7f0dfd96f114da4f9ea852cca85fc9f12c95491c"
+  }
+}

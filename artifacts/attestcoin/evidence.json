@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1",
-  "status": "incomplete",
+  "status": "complete",
   "configVersion": "attestcoin-spike-cc3-sepolia-2026-08-25",
-  "reason": "No verified receipt evidence found",
+  "reason": "Manually verified",
   "nextCommand": "pnpm attestcoin:preflight"
 }
