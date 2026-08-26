@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1",
+  "verifiedAt": "2026-08-26T15:36:02.726Z",
+  "deploymentArtifact": "artifacts/protocol/cc3-settlement.json",
+  "chainId": 102031,
+  "contracts": {
+    "registry": "0x49d111A920e70F47d83bae8034e8dcb4aC9C76b0",
+    "market": "0x79f8EE69eA0A917aaA34A9DFBBCbD654684517C2",
+    "vault": "0x4F75142937F8c8a732305BcCC163833F5A7F8250",
+    "settlement": "0xcd0EF8892C7C4D3D576C30c442047115cA77509D",
+    "verifier": "0x0000000000000000000000000000000000000FD2",
+    "chainInfo": "0x0000000000000000000000000000000000000fD3",
+    "decoder": "0x731c345d79Fb8BbDC541f9DF3b6317585F849F9f"
+  },
+  "reservationId": "1",
+  "foreignTransaction": "0x92730f690ab9b0c17146a9bfa91e0651b3d29c8a889f089bc89c266e579f2d62",
+  "foreignBlockHeight": "11571739",
+  "transactionIndex": "158",
+  "transferLogIndex": "0",
+  "settlementTransaction": "0xc3dfbb208c3c308c90ab80f70c2313f34989ae4d9fb152ad41f3981d148f84e8",
+  "replayIdentity": "0x0548b02b02eafc5d879133af1708dbdbe2ab9cc38d22f27311eecfbbcb4ac3e8",
+  "relayer": "0x24DD8fAf23F07C28751678DC6Ac13473950c8857",
+  "solver": "0x6B313ED963a947c8e63d18cdae70fE23c6b4d576",
+  "recipient": "0x2AC7A561f5A521D152a70DE2C98d90434ff011be",
+  "deliveredToken": "0x0F24FD9e0524BA53d3f0A4A40350Adf5370b4A53",
+  "deliveredAmount": "1000000000000000",
+  "creditedAmount": "1000000000000000",
+  "lockedPayout": "1000000000000000",
+  "returnedBond": "10000000000000",
+  "sourceWindow": {
+    "start": "11571691",
+    "end": "11571946",
+    "bounds": "inclusive"
+  },
+  "semanticChecks": {
+    "officialVerification": "pass",
+    "sourceChain": "pass",
+    "sourceTiming": "pass",
+    "directTransfer": "pass",
+    "token": "pass",
+    "sender": "pass",
+    "recipient": "pass",
+    "amount": "pass",
+    "replayProtection": "pass",
+    "reservationState": "settled"
+  }
+}

@@ -2,6 +2,165 @@
   "schemaVersion": "1",
   "status": "verified",
   "configVersion": "attestcoin-spike-cc3-sepolia-2026-08-25",
-  "reason": "Manually verified",
-  "nextCommand": "pnpm attestcoin:preflight"
+  "verifiedAt": "2026-08-26T13:01:50.161Z",
+  "environment": {
+    "configVersion": "attestcoin-spike-cc3-sepolia-2026-08-25",
+    "verifiedAt": "2026-08-26T13:01:50.161Z",
+    "creditcoin": {
+      "name": "Creditcoin CC3 Testnet",
+      "chainId": 102031,
+      "rpcEnv": "CREDITCOIN_RPC_URL",
+      "explorerUrl": "https://creditcoin-testnet.blockscout.com",
+      "nativeCurrency": {
+        "symbol": "tCTC",
+        "decimals": 18
+      }
+    },
+    "foreign": {
+      "name": "Ethereum Sepolia",
+      "chainId": 11155111,
+      "sourceChainKey": 1,
+      "rpcEnv": "FOREIGN_RPC_URL",
+      "explorerUrl": "https://sepolia.etherscan.io",
+      "finalityOrAttestationRule": {
+        "kind": "attested-height",
+        "description": "Proof generation is ready only after the CC3 proof builder reports an attested height at or above the source block.",
+        "pollIntervalMs": 15000
+      }
+    },
+    "deliveryToken": {
+      "address": "0x0F24FD9e0524BA53d3f0A4A40350Adf5370b4A53",
+      "symbol": "TEST",
+      "decimals": 18,
+      "fundingMethod": "Call mint(uint256) on the official example TestERC20 using the disposable Sepolia account.",
+      "behavior": "standard-erc20"
+    },
+    "settlementToken": {
+      "address": "0x914Cf96BF28b7b4921db27b264ecEd71aC91134E",
+      "symbol": "BTKT",
+      "decimals": 18,
+      "fundingMethod": "Follow the official Hello Bridge testnet flow; successful verified burns mint BTKT to the disposable CC3 account."
+    },
+    "attestcoin": {
+      "architectureVersion": "USC v2 (Attestcoin Protocol Readability)",
+      "verifierAddress": "0x0000000000000000000000000000000000000FD2",
+      "chainInfoAddress": "0x0000000000000000000000000000000000000fD3",
+      "decoderAddress": "0x731c345d79Fb8BbDC541f9DF3b6317585F849F9f",
+      "contractsPackage": "@gluwa/usc-contracts@0.1.2",
+      "sdkPackage": "@gluwa/usc-sdk@0.18.0",
+      "proofBuilderEnv": "ATTESTCOIN_PROOF_BUILDER_URL",
+      "probeAddressEnv": "ATTESTCOIN_PROBE_ADDRESS",
+      "interfaceFunctions": [
+        "verify(uint64,uint64,bytes,(bytes32,(bytes32,bool)[]),(bytes32,bytes32[]))",
+        "verifyAndEmit(uint64,uint64,bytes,(bytes32,(bytes32,bool)[]),(bytes32,bytes32[]))",
+        "calculateTxIndex((bytes32,(bytes32,bool)[]))"
+      ],
+      "decoder": "@gluwa/usc-contracts@0.1.2 EvmV1Decoder",
+      "upstream": {
+        "repository": "https://github.com/gluwa/usc-testnet-bridge-examples",
+        "commit": "4ff9a3bf5d7fa8dbfec34ae9726d3f81405dca7b"
+      }
+    },
+    "officialSourceRefs": [
+      "https://docs.creditcoin.org/environments/testnet",
+      "https://docs.creditcoin.org/attestcoin-protocol/attestcoin-protocol-chains-environments",
+      "https://docs.creditcoin.org/attestcoin-protocol/dapp-builder-infrastructure/attestcoin-sdk-usc-sdk",
+      "https://docs.creditcoin.org/attestcoin-protocol/dapp-builder-infrastructure/attestcoin-smart-contracts",
+      "https://github.com/gluwa/usc-testnet-bridge-examples/tree/4ff9a3bf5d7fa8dbfec34ae9726d3f81405dca7b"
+    ]
+  },
+  "foreignTxHash": "0x1f2962dbd15b4a40b7c0ad0f5e47cae02ce1e12e21983927ffc7ce35e7ba89ef",
+  "foreignExplorerUrl": "https://sepolia.etherscan.io/tx/0x1f2962dbd15b4a40b7c0ad0f5e47cae02ce1e12e21983927ffc7ce35e7ba89ef",
+  "creditcoinTxHash": "0x6885f6ac0b389b4807134f5f8bb10b501372ccded6e8e85e15934f21bd903b66",
+  "creditcoinExplorerUrl": "https://creditcoin-testnet.blockscout.com/tx/0x6885f6ac0b389b4807134f5f8bb10b501372ccded6e8e85e15934f21bd903b66",
+  "transferExpectation": {
+    "sourceChainKey": 1,
+    "sourceChainId": 11155111,
+    "token": "0x0F24FD9e0524BA53d3f0A4A40350Adf5370b4A53",
+    "sender": "0x6B313ED963a947c8e63d18cdae70fE23c6b4d576",
+    "recipient": "0x2AC7A561f5A521D152a70DE2C98d90434ff011be",
+    "minimumAmount": "1000000000000000",
+    "transferTopic0": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+  },
+  "receipt": {
+    "foreignTxHash": "0x1f2962dbd15b4a40b7c0ad0f5e47cae02ce1e12e21983927ffc7ce35e7ba89ef",
+    "blockNumber": "11570345",
+    "blockHash": "0x270ab39a2fdf7b16f557b563777e8e743b1744a1eebb25898b0cfe2de98d8612",
+    "transactionIndex": "107",
+    "transactionTo": "0x0F24FD9e0524BA53d3f0A4A40350Adf5370b4A53",
+    "receiptStatus": 1,
+    "transferLogIndex": "114",
+    "logEmitter": "0x0F24FD9e0524BA53d3f0A4A40350Adf5370b4A53",
+    "transferFrom": "0x6B313ED963a947c8e63d18cdae70fE23c6b4d576",
+    "transferTo": "0x2AC7A561f5A521D152a70DE2C98d90434ff011be",
+    "transferAmount": "1000000000000000",
+    "sourceTime": {
+      "kind": "authenticated-block-height",
+      "blockNumber": "11570345",
+      "timestamp": "unavailable"
+    },
+    "replayIdentity": {
+      "chainKey": "1",
+      "blockHeight": "11570345",
+      "transactionIndex": "107",
+      "derived": "0x93d4b5e7d62b8bf5ddd2ec5e6ef93da77712d3629eef3ce38342325f77b7d644"
+    }
+  },
+  "verification": {
+    "creditcoinTxHash": "0x6885f6ac0b389b4807134f5f8bb10b501372ccded6e8e85e15934f21bd903b66",
+    "creditcoinBlockNumber": "5377403",
+    "verifierAddress": "0x0000000000000000000000000000000000000FD2",
+    "probeContractAddress": "0x5cB900a105C93331B763785B65A21E8228abeb66",
+    "verified": true,
+    "replayIdentity": "0x93d4b5e7d62b8bf5ddd2ec5e6ef93da77712d3629eef3ce38342325f77b7d644",
+    "authenticatedFields": {
+      "foreignTxHash": "0x1f2962dbd15b4a40b7c0ad0f5e47cae02ce1e12e21983927ffc7ce35e7ba89ef",
+      "blockNumber": "11570345",
+      "blockHash": "0x270ab39a2fdf7b16f557b563777e8e743b1744a1eebb25898b0cfe2de98d8612",
+      "transactionIndex": "107",
+      "transactionTo": "0x0F24FD9e0524BA53d3f0A4A40350Adf5370b4A53",
+      "receiptStatus": 1,
+      "transferLogIndex": "114",
+      "logEmitter": "0x0F24FD9e0524BA53d3f0A4A40350Adf5370b4A53",
+      "transferFrom": "0x6B313ED963a947c8e63d18cdae70fE23c6b4d576",
+      "transferTo": "0x2AC7A561f5A521D152a70DE2C98d90434ff011be",
+      "transferAmount": "1000000000000000",
+      "sourceTime": {
+        "kind": "authenticated-block-height",
+        "blockNumber": "11570345",
+        "timestamp": "unavailable"
+      },
+      "replayIdentity": {
+        "chainKey": "1",
+        "blockHeight": "11570345",
+        "transactionIndex": "107",
+        "derived": "0x93d4b5e7d62b8bf5ddd2ec5e6ef93da77712d3629eef3ce38342325f77b7d644"
+      }
+    },
+    "semanticChecks": {
+      "sourceChain": "pass",
+      "receiptSuccess": "pass",
+      "transactionTarget": "pass",
+      "token": "pass",
+      "sender": "pass",
+      "recipient": "pass",
+      "amount": "pass",
+      "sourceTiming": "pass",
+      "replayIdentity": "pass"
+    },
+    "officialSourceRefs": [
+      "https://docs.creditcoin.org/environments/testnet",
+      "https://docs.creditcoin.org/attestcoin-protocol/attestcoin-protocol-chains-environments",
+      "https://docs.creditcoin.org/attestcoin-protocol/dapp-builder-infrastructure/attestcoin-sdk-usc-sdk",
+      "https://docs.creditcoin.org/attestcoin-protocol/dapp-builder-infrastructure/attestcoin-smart-contracts",
+      "https://github.com/gluwa/usc-testnet-bridge-examples/tree/4ff9a3bf5d7fa8dbfec34ae9726d3f81405dca7b"
+    ]
+  },
+  "proof": {
+    "chainKey": 1,
+    "headerNumber": 11570345,
+    "txIndex": 107,
+    "sourceTxHash": "0x1f2962dbd15b4a40b7c0ad0f5e47cae02ce1e12e21983927ffc7ce35e7ba89ef",
+    "generatedAt": "2026-08-26T13:01:08.147Z"
+  }
 }

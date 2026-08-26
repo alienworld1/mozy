@@ -30,7 +30,7 @@ forge test --match-contract ReservationEngineTest -vvvv
 
 ## Local reservation lifecycle
 
-The local deployment uses an immutable 100 basis-point bond rate and a 10-token cap. After creating and fully funding an open mandate through the Module 2 path:
+The local deployment uses an immutable 100 basis-point bond rate and a 10-token cap. After creating and fully funding an open mandate through the standard mandate funding flow:
 
 1. Read `quoteReservation(mandateId, quantity)` from `MozyMarket`. Preserve the integer `payout`, `bondAmount`, and `eligibleUntil` values.
 2. From the solver account, approve `SettlementVault` for the exact `bondAmount` in the local settlement token.
@@ -68,6 +68,9 @@ FOREIGN_RPC_URL=<Sepolia HTTPS RPC>
 ATTESTCOIN_PROOF_BUILDER_URL=<pinned HTTPS proof builder>
 MOZY_DEPLOYER_PRIVATE_KEY=<disposable testnet key>
 MOZY_PROTOCOL_ADMIN=<same disposable account address>
+MOZY_RELAYER_PRIVATE_KEY=<separate disposable CC3 relayer key>
+MOZY_SOURCE_WINDOW_BLOCKS=<positive source-height span>
+MOZY_SETTLEMENT_GRACE_BLOCKS=<positive proof-submission grace span>
 ```
 
 The deployer must have tCTC and BTKT. Build and deploy:
@@ -77,23 +80,41 @@ pnpm protocol:build
 pnpm protocol:deploy
 ```
 
-The command confirms chain ID `102031`, live BTKT code and decimals, config version, signer funding, and the nonzero policy owner before mutation. It waits for each receipt and prints each transaction hash and explorer link. It deploys `MarketRegistry`, `MozyMarket`, and `SettlementVault`, completes one-time wiring, enables the pinned market, and writes public data plus the immutable bond policy to `artifacts/protocol/cc3-module3.json`. The existing Module 2 artifact remains historical evidence. Network writes are never retried automatically.
+The command confirms chain ID `102031`, live BTKT and decoder code, token decimals, config version, signer funding, and the nonzero policy owner before mutation. It waits for each receipt and prints each transaction hash and explorer link. It deploys `MarketRegistry`, `MozyMarket`, `SettlementVault`, and `MozySettlement`, completes one-time wiring, enables the pinned market, and writes public addresses plus immutable bond/source-window policies to `artifacts/protocol/cc3-settlement.json`. Network writes are never retried automatically.
 
 Verify the live deployment from a new process:
 
 ```bash
 pnpm protocol:inspect
-pnpm protocol:inspect -- --mandate 1
-pnpm protocol:inspect -- --reservation 1
+pnpm protocol:inspect --mandate 1
+pnpm protocol:inspect --reservation 1
 ```
 
-Before the first reservation, inspection reports `No reservations created for this protocol`. The reservation view leads with ID and status, then reports immutable terms, delivery requirements, mandate quantities, all mandate budget buckets, isolated bond custody, reconciliation, and token solvency.
+Before the first reservation, inspection reports `No reservations created for this protocol`. The reservation view leads with ID and status, identifies its parent acquisition and source market, then reports immutable terms, token decimals, delivery requirements, mandate quantities, all mandate budget buckets, isolated bond custody, reconciliation, and token solvency. An unknown ID reports `We couldn't find that reservation.` instead of presenting an empty object.
 
-To recover without the local artifact, provide the three public addresses and admin explicitly:
+To recover without the local artifact, provide the four public protocol addresses and admin explicitly:
 
 ```bash
-pnpm protocol:inspect -- --registry <address> --market <address> --vault <address> --admin <address>
+pnpm protocol:inspect --registry <address> --market <address> --vault <address> --settlement <address> --admin <address>
 ```
+
+The current deployment and successful proof-to-payment run are recorded in
+`artifacts/protocol/cc3-settlement.json` and
+`artifacts/protocol/cc3-settlement-evidence.json`. Both contain public chain data only; signer
+keys and credential-bearing RPC URLs remain sourced from `.env` and are never written to artifacts.
+
+After creating and funding a mandate, creating a reservation, sending the direct TEST transfer,
+and generating its proof, submit from an unrelated relayer:
+
+```bash
+pnpm protocol:settle --reservation <id> --proof .attestcoin/proofs/<source-tx>.json
+pnpm protocol:inspect --reservation <id>
+pnpm protocol:inspect --receipt <replay-identity>
+pnpm protocol:evidence:check
+```
+
+The settlement command simulates the complete official verification and economic transition
+before broadcasting once. It prints no proof blob and never retries a write automatically.
 
 ## Canonical mandate transaction path
 
@@ -106,4 +127,4 @@ After deployment, use the disposable buyer signer to:
 5. inspect the approval and funding transactions on the CC3 explorer;
 6. confirm the mandate is `Open`, custody is at the vault, and the self-audit passes.
 
-Operator tooling should map stable custom errors to the product copy in the Module 2 spec. In particular, never describe an underfunded mandate as open or reservable, and never describe Module 2 as Attestcoin settlement.
+Operator tooling should map stable custom errors to the product copy in the mandate funding specification. In particular, never describe an underfunded mandate as open or reservable, and never describe mandate funding as Attestcoin settlement.
