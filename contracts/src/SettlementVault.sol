@@ -90,7 +90,7 @@ contract SettlementVault is ReentrancyGuard {
         }
     }
 
-    // These market-only bucket primitives are the narrow accounting seam used by Modules 3 and 4.
+    // These market-only primitives keep reservation accounting behind one authority.
     function lock(uint256 mandateId, address token, uint256 amount) external onlyMarketOperator {
         VaultAccount storage account = _accountFor(mandateId, token);
         if (amount == 0 || amount > account.free) revert AccountingInvariantViolation();
@@ -166,7 +166,7 @@ contract SettlementVault is ReentrancyGuard {
         _resolveBond(reservationId, token, solver, buyer, amount);
     }
 
-    /// @dev Module 4's market-only success primitive. No production caller reaches it in Module 3.
+    /// @dev Returns one resolved reservation bond to its bound solver.
     function returnBond(uint256 reservationId, address token, address solver, uint256 amount)
         external
         onlyMarketOperator

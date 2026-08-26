@@ -7,6 +7,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {MarketRegistry} from "./MarketRegistry.sol";
 import {SettlementVault} from "./SettlementVault.sol";
 import {PricingLibrary} from "./PricingLibrary.sol";
+import {IAttestcoinChainInfo} from "./AttestcoinInterfaces.sol";
 import {
     PricingMode,
     MandateStatus,
@@ -42,7 +43,13 @@ import {
     ReservationDurationUnavailable,
     ExpectedPayoutMismatch,
     InsufficientPayoutBudget,
-    ZeroBond
+    ZeroBond,
+    InvalidSourceWindowPolicy,
+    SourceAttestationUnavailable,
+    SourceWindowStillOpen,
+    SettlementOperatorAlreadyConfigured,
+    UnauthorizedSettlementOperator,
+    IncompatibleReservationState
 } from "./ProtocolErrors.sol";
 
 /// @notice Owns Acquisition Mandate identity, terms, quantity, and lifecycle.
@@ -52,6 +59,10 @@ contract MozyMarket is Ownable, ReentrancyGuard {
     uint256 public immutable bondRateBps;
     uint256 public immutable bondCap;
     SettlementVault public vault;
+    IAttestcoinChainInfo public immutable chainInfo;
+    uint64 public immutable sourceWindowBlocks;
+    uint64 public immutable settlementGraceBlocks;
+    address public settlementOperator;
     bool public protocolPaused;
     uint256 public nextMandateId = 1;
     uint256 public nextReservationId = 1;
@@ -62,6 +73,7 @@ contract MozyMarket is Ownable, ReentrancyGuard {
 
     event ProtocolPauseChanged(bool paused, address indexed admin);
     event VaultConfigured(address indexed vault, address indexed admin);
+    event SettlementOperatorConfigured(address indexed settlementOperator, address indexed admin);
     event MandateCreated(
         uint256 indexed mandateId,
         address indexed buyer,
@@ -94,7 +106,10 @@ contract MozyMarket is Ownable, ReentrancyGuard {
         uint256 quantity,
         uint256 lockedPayout,
         uint256 bondAmount,
-        uint64 deliveryDeadline
+        uint64 deliveryDeadline,
+        uint64 sourceStartHeight,
+        uint64 sourceEndHeight,
+        uint64 expiryEligibleHeight
     );
     event ReservationExpired(
         uint256 indexed reservationId,
@@ -110,16 +125,36 @@ contract MozyMarket is Ownable, ReentrancyGuard {
     constructor(
         address protocolAdmin,
         MarketRegistry marketRegistry,
+        IAttestcoinChainInfo attestcoinChainInfo,
+        uint64 acceptedSourceBlocks,
+        uint64 proofSettlementGraceBlocks,
         uint256 reservationBondRateBps,
         uint256 reservationBondCap
     ) Ownable(protocolAdmin) {
-        if (protocolAdmin == address(0) || address(marketRegistry) == address(0)) revert ZeroAddress();
+        if (
+            protocolAdmin == address(0) || address(marketRegistry) == address(0)
+                || address(attestcoinChainInfo) == address(0)
+        ) revert ZeroAddress();
+        if (
+            acceptedSourceBlocks == 0 || proofSettlementGraceBlocks == 0
+                || uint256(acceptedSourceBlocks) + proofSettlementGraceBlocks > type(uint64).max
+        ) revert InvalidSourceWindowPolicy();
         if (reservationBondRateBps == 0 || reservationBondRateBps > BPS_DENOMINATOR || reservationBondCap == 0) {
             revert InvalidBondPolicy();
         }
         registry = marketRegistry;
+        chainInfo = attestcoinChainInfo;
+        sourceWindowBlocks = acceptedSourceBlocks;
+        settlementGraceBlocks = proofSettlementGraceBlocks;
         bondRateBps = reservationBondRateBps;
         bondCap = reservationBondCap;
+    }
+
+    function configureSettlementOperator(address operator) external onlyOwner {
+        if (settlementOperator != address(0)) revert SettlementOperatorAlreadyConfigured();
+        if (operator == address(0) || operator.code.length == 0) revert ProtocolNotConfigured();
+        settlementOperator = operator;
+        emit SettlementOperatorConfigured(operator, msg.sender);
     }
 
     function configureVault(SettlementVault settlementVault) external onlyOwner {
@@ -342,6 +377,11 @@ contract MozyMarket is Ownable, ReentrancyGuard {
         reservationId = nextReservationId++;
         uint64 createdAt = uint64(block.timestamp);
         uint64 deliveryDeadline = createdAt + mandate.reservationDuration;
+        (uint64 latestAttested,,, bool exists) = chainInfo.get_latest_attestation_height_and_hash(market.sourceChainKey);
+        if (!exists || latestAttested == type(uint64).max) revert SourceAttestationUnavailable();
+        uint256 sourceEnd = uint256(latestAttested) + sourceWindowBlocks;
+        uint256 expiryHeight = sourceEnd + settlementGraceBlocks;
+        if (expiryHeight > type(uint64).max) revert InvalidSourceWindowPolicy();
         _reservations[reservationId] = Reservation({
             id: reservationId,
             mandateId: mandateId,
@@ -351,6 +391,9 @@ contract MozyMarket is Ownable, ReentrancyGuard {
             bondAmount: quote.bondAmount,
             createdAt: createdAt,
             deliveryDeadline: deliveryDeadline,
+            sourceStartHeight: latestAttested + 1,
+            sourceEndHeight: uint64(sourceEnd),
+            expiryEligibleHeight: uint64(expiryHeight),
             status: ReservationStatus.Active
         });
         mandate.reservedAmount += quantity;
@@ -358,7 +401,16 @@ contract MozyMarket is Ownable, ReentrancyGuard {
         vault.collectBond(reservationId, market.settlementToken, msg.sender, quote.bondAmount);
 
         emit ReservationCreated(
-            reservationId, mandateId, msg.sender, quantity, quote.payout, quote.bondAmount, deliveryDeadline
+            reservationId,
+            mandateId,
+            msg.sender,
+            quantity,
+            quote.payout,
+            quote.bondAmount,
+            deliveryDeadline,
+            latestAttested + 1,
+            uint64(sourceEnd),
+            uint64(expiryHeight)
         );
     }
 
@@ -368,6 +420,13 @@ contract MozyMarket is Ownable, ReentrancyGuard {
         if (block.timestamp < reservation.deliveryDeadline) revert ReservationNotExpired();
 
         Mandate storage mandate = _requireMandate(reservation.mandateId);
+        MarketConfig memory market = registry.getMarket(mandate.marketId);
+        (uint64 latestAttested,,, bool exists) = chainInfo.get_latest_attestation_height_and_hash(market.sourceChainKey);
+        if (!exists) revert SourceAttestationUnavailable();
+        if (latestAttested < reservation.expiryEligibleHeight) {
+            revert SourceWindowStillOpen(latestAttested, reservation.expiryEligibleHeight);
+        }
+
         address settlementToken = _mandateSettlementTokens[reservation.mandateId];
         reservation.status = ReservationStatus.Expired;
         mandate.reservedAmount -= reservation.quantity;
@@ -466,10 +525,12 @@ contract MozyMarket is Ownable, ReentrancyGuard {
         });
     }
 
-    /// @dev Module 4's proof-gated transition. It is intentionally unreachable from this module's production ABI.
-    function _settleReservation(uint256 reservationId) internal {
+    function settleReservation(uint256 reservationId) external nonReentrant {
+        if (msg.sender != settlementOperator || settlementOperator == address(0)) {
+            revert UnauthorizedSettlementOperator();
+        }
         Reservation storage reservation = _requireReservation(reservationId);
-        if (reservation.status != ReservationStatus.Active) revert ReservationAlreadyResolved();
+        if (reservation.status != ReservationStatus.Active) revert IncompatibleReservationState();
         Mandate storage mandate = _requireMandate(reservation.mandateId);
         address settlementToken = _mandateSettlementTokens[reservation.mandateId];
         reservation.status = ReservationStatus.Settled;
@@ -477,6 +538,10 @@ contract MozyMarket is Ownable, ReentrancyGuard {
         mandate.acquiredAmount += reservation.quantity;
         vault.spend(reservation.mandateId, settlementToken, reservation.solver, reservation.lockedPayout);
         vault.returnBond(reservationId, settlementToken, reservation.solver, reservation.bondAmount);
+        if (
+            mandate.acquiredAmount == mandate.targetAmount && mandate.reservedAmount == 0
+                && (mandate.status == MandateStatus.Open || mandate.status == MandateStatus.Paused)
+        ) mandate.status = MandateStatus.Filled;
     }
 
     function _requireMandate(uint256 mandateId) private view returns (Mandate storage mandate) {

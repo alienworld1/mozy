@@ -7,6 +7,7 @@ interface Vm {
     function stopPrank() external;
     function warp(uint256 timestamp) external;
     function expectRevert(bytes4 selector) external;
+    function expectRevert(bytes calldata revertData) external;
     function expectRevert() external;
     function assume(bool condition) external;
 }

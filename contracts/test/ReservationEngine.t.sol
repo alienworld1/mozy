@@ -35,6 +35,7 @@ import {
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {ShortTransferToken} from "./mocks/ShortTransferToken.sol";
 import {ReentrantToken} from "./mocks/ReentrantToken.sol";
+import {ClockedChainInfo} from "./mocks/ClockedChainInfo.sol";
 
 contract ReservationEngineTest is TestBase {
     address private constant ADMIN = address(0xA11CE);
@@ -95,6 +96,9 @@ contract ReservationEngineTest is TestBase {
         assertEq(reservation.lockedPayout, quote.payout);
         assertEq(reservation.bondAmount, quote.bondAmount);
         assertEq(reservation.deliveryDeadline, reservation.createdAt + mandate.reservationDuration);
+        assertEq(reservation.sourceStartHeight, reservation.createdAt + 1);
+        assertEq(reservation.sourceEndHeight, reservation.createdAt + 10);
+        assertEq(reservation.expiryEligibleHeight, reservation.createdAt + 15);
         assertEq(uint256(reservation.status), uint256(ReservationStatus.Active));
         assertEq(mandate.reservedAmount, UNIT);
         assertEq(account.reserved, quote.payout);
@@ -107,6 +111,15 @@ contract ReservationEngineTest is TestBase {
         assertEq(vault.accountedTokenBalance(address(token)), account.funded + quote.bondAmount);
         assertEq(vault.unresolvedBondBalance(address(token)), quote.bondAmount);
         assertTrue(vault.isSolvent(address(token)));
+
+        (MarketConfig memory requirements, address recipient, address settlementToken) =
+            market.getReservationRequirements(reservationId);
+        assertEq(requirements.sourceChainKey, 1);
+        assertEq(requirements.foreignToken, FOREIGN_TOKEN);
+        assertEq(requirements.foreignTokenDecimals, 18);
+        assertEq(requirements.settlementTokenDecimals, 18);
+        assertEq(recipient, DELIVERY_WALLET);
+        assertEq(settlementToken, address(token));
     }
 
     function testStaleRangeQuoteAndOverReservationRollbackCompletely() external {
@@ -393,7 +406,7 @@ contract ReservationEngineTest is TestBase {
         returns (MarketRegistry deployedRegistry, MozyMarket deployedMarket, SettlementVault deployedVault)
     {
         deployedRegistry = new MarketRegistry(ADMIN, 1, FOREIGN_TOKEN, 18, settlementToken, 18, keccak256("test"));
-        deployedMarket = new MozyMarket(ADMIN, deployedRegistry, BOND_RATE_BPS, BOND_CAP);
+        deployedMarket = new MozyMarket(ADMIN, deployedRegistry, new ClockedChainInfo(), 10, 5, BOND_RATE_BPS, BOND_CAP);
         deployedVault = new SettlementVault(address(deployedMarket));
         vm.startPrank(ADMIN);
         deployedMarket.configureVault(deployedVault);
@@ -433,7 +446,7 @@ contract ReservationInvariantHandler {
         token = new MockERC20();
         MarketRegistry registry =
             new MarketRegistry(address(this), 1, address(0x1234), 18, address(token), 18, keccak256("invariant"));
-        market = new MozyMarket(address(this), registry, 100, 10 * UNIT);
+        market = new MozyMarket(address(this), registry, new ClockedChainInfo(), 10, 5, 100, 10 * UNIT);
         vault = new SettlementVault(address(market));
         market.configureVault(vault);
         registry.configureReleaseMarket(

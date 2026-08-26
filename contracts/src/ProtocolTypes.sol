@@ -76,6 +76,9 @@ struct Reservation {
     uint256 bondAmount;
     uint64 createdAt;
     uint64 deliveryDeadline;
+    uint64 sourceStartHeight;
+    uint64 sourceEndHeight;
+    uint64 expiryEligibleHeight;
     ReservationStatus status;
 }
 
