@@ -1,0 +1,34 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.30;
+
+error Unauthorized();
+error ZeroAddress();
+error MarketNotConfigured();
+error MarketNotEnabled();
+error MarketAlreadyConfigured();
+error MarketConfigurationMismatch();
+error SettlementTokenHasNoCode();
+error ProtocolPaused();
+error ProtocolNotConfigured();
+error VaultAlreadyConfigured();
+error MandateNotFound();
+error InvalidDeliveryWallet();
+error InvalidTarget();
+error InvalidPrice();
+error InvalidLimitPrice();
+error PricingInputOutOfBounds();
+error InvalidQuantity();
+error QuoteExceedsTarget();
+error ZeroPayout();
+error InvalidExpiry();
+error InvalidReservationDuration();
+error NotMandateBuyer();
+error InvalidFundingAmount();
+error FundingExceedsRequirement();
+error UnexpectedTokenBalanceDelta();
+error InvalidMandateStatus();
+error InvalidRefundAmount();
+error RefundExceedsFreeBalance();
+error OutstandingMandateBalance();
+error VaultAccountTokenMismatch();
+error AccountingInvariantViolation();
