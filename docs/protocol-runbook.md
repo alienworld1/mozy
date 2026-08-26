@@ -11,31 +11,54 @@ pnpm protocol:test
 pnpm attestcoin:typecheck
 ```
 
-The Foundry suite covers Limit and Range fixtures, fuzzed equal-endpoint pricing, lifecycle authorization, partial and exact funding, overfunding rollback, cancellation, expiry, partial/full refund, permissionless close, mandate isolation, direct-transfer isolation, short-transfer rejection, funding/refund reentrancy, and future-only lock/unlock/spend accounting.
+The Foundry suite covers Limit and Range fixtures, mandate lifecycle and accounting, canonical reservation quotes, stale-quote rollback, immutable solver binding, deadline boundaries, isolated bonds, permissionless expiry, cross-mandate isolation, direct-transfer isolation, hostile token behavior, and future-only payout/bond-return seams.
 
 For a persistent local chain, start Anvil in one terminal. Put one Anvil private key in `MOZY_LOCAL_PRIVATE_KEY`, then deploy with:
 
 ```bash
-pnpm protocol:deploy:local -- --rpc-url http://127.0.0.1:8545
+pnpm protocol:deploy:local
 ```
 
 The Forge output lists the local token, registry, market, and vault addresses. From a fresh shell, use `cast call` against those addresses to confirm `nextMandateId()`, `getMarket(uint256)`, `getMandate(uint256)`, `getAccount(uint256)`, and `auditMandate(uint256)`. Use `cast send` from the local buyer key to approve the vault, create a mandate, fund it in two transactions, pause/resume, cancel, refund in two transactions, and close. Every write should be inspected by transaction hash before another write is submitted.
 
-The focused automated happy path is also available with:
+Focused automated paths are also available with:
 
 ```bash
 forge test --match-test testHappyPathFundingLifecycleAndIsolation -vvvv
+forge test --match-contract ReservationEngineTest -vvvv
 ```
+
+## Local reservation lifecycle
+
+The local deployment uses an immutable 100 basis-point bond rate and a 10-token cap. After creating and fully funding an open mandate through the Module 2 path:
+
+1. Read `quoteReservation(mandateId, quantity)` from `MozyMarket`. Preserve the integer `payout`, `bondAmount`, and `eligibleUntil` values.
+2. From the solver account, approve `SettlementVault` for the exact `bondAmount` in the local settlement token.
+3. From that same solver account, call `createReservation(mandateId, quantity, payout)`. The sender becomes the immutable solver; there is no separate solver parameter.
+4. Record the returned ID or decode `ReservationCreated`, then read `getReservation(id)`, `getReservationRequirements(id)`, `getMandate(mandateId)`, `getAccount(mandateId)`, and `getBondEscrow(id)`.
+5. Confirm quantity moved into `reservedAmount`, payout moved from vault `free` to `reserved`, and the bond appears only in its reservation escrow and `unresolvedBondBalance`.
+6. Advance Anvil to the exact delivery deadline with `cast rpc evm_setNextBlockTimestamp <deadline>` followed by `cast rpc evm_mine`, then call `expireReservation(id)` from any account.
+7. Confirm status `Expired`, released quantity and payout, buyer bond receipt, resolved escrow, and `isSolvent(token) == true`.
+
+Writes can be submitted with `cast send` using these signatures:
+
+```bash
+cast send "$SETTLEMENT_TOKEN" "approve(address,uint256)" "$SETTLEMENT_VAULT" "$BOND_AMOUNT" --private-key "$SOLVER_PRIVATE_KEY" --rpc-url http://127.0.0.1:8545
+cast send "$MOZY_MARKET" "createReservation(uint256,uint256,uint256)(uint256)" "$MANDATE_ID" "$QUANTITY" "$EXPECTED_PAYOUT" --private-key "$SOLVER_PRIVATE_KEY" --rpc-url http://127.0.0.1:8545
+cast send "$MOZY_MARKET" "expireReservation(uint256)" "$RESERVATION_ID" --private-key "$CALLER_PRIVATE_KEY" --rpc-url http://127.0.0.1:8545
+```
+
+Use disposable Anvil keys only. Inspect each transaction receipt before retrying a write.
 
 ## Creditcoin deployment
 
-Module 1 receipt verification has been confirmed separately. Its evidence command remains available as a read-only operational check:
+Verified attestcoin receipt evidence is a release prerequisite. Revalidate it with the read-only command:
 
 ```bash
 pnpm attestcoin:evidence:check
 ```
 
-The Module 2 deployment command does not use the local evidence-manifest status as a release gate. It independently validates the pinned public configuration and all live Creditcoin deployment requirements before mutation.
+The deployment command requires a `verified` evidence manifest, revalidates it and the pinned public configuration before any mutation, then independently validates the live Creditcoin deployment requirements. A manual completion marker does not satisfy this gate.
 
 Before deployment, configure a disposable testnet account in `.env`:
 
@@ -54,16 +77,17 @@ pnpm protocol:build
 pnpm protocol:deploy
 ```
 
-The command confirms chain ID `102031`, live BTKT code and decimals, config version, signer funding, and the nonzero policy owner before mutation. It waits for each receipt and prints each transaction hash and explorer link. It deploys `MarketRegistry`, `MozyMarket`, and `SettlementVault`, completes one-time wiring, enables the pinned market, and writes public data to `artifacts/protocol/cc3.json`. Network writes are never retried automatically.
+The command confirms chain ID `102031`, live BTKT code and decimals, config version, signer funding, and the nonzero policy owner before mutation. It waits for each receipt and prints each transaction hash and explorer link. It deploys `MarketRegistry`, `MozyMarket`, and `SettlementVault`, completes one-time wiring, enables the pinned market, and writes public data plus the immutable bond policy to `artifacts/protocol/cc3-module3.json`. The existing Module 2 artifact remains historical evidence. Network writes are never retried automatically.
 
 Verify the live deployment from a new process:
 
 ```bash
 pnpm protocol:inspect
 pnpm protocol:inspect -- --mandate 1
+pnpm protocol:inspect -- --reservation 1
 ```
 
-Before the first mandate, inspection reports `No mandates created`. The mandate view leads with ID, status, target, required funding, and funded/free/reserved/spent/refunded BTKT base units, followed by quantity and budget reconciliation.
+Before the first reservation, inspection reports `No reservations created for this protocol`. The reservation view leads with ID and status, then reports immutable terms, delivery requirements, mandate quantities, all mandate budget buckets, isolated bond custody, reconciliation, and token solvency.
 
 To recover without the local artifact, provide the three public addresses and admin explicitly:
 

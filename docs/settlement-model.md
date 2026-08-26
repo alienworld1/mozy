@@ -1,6 +1,6 @@
 # Mandate settlement model
 
-Module 2 establishes one funded Acquisition Mandate on Creditcoin. It does not create reservations, verify foreign receipts, or settle a solver. Those transitions begin in Modules 3 and 4.
+The Mozy protocol establishes a funded Acquisition Mandate and an exclusive solver reservation on Creditcoin. They do not verify foreign receipts or settle a solver; those transitions begin soon.
 
 ## Pricing units and rounding
 
@@ -32,12 +32,28 @@ The mandate's `requiredFunding` is the full-target quote from position zero. The
 
 ```text
 funded = spent + reserved + free + refunded
-vault token balance >= sum(reserved + free) for that token
+vault token balance >= sum(reserved + free) + unresolved solver bonds for that token
 ```
 
 Funding measures the vault balance before and after `transferFrom` and accepts only the exact requested increase. Refund and the future-only spend seam update accounting before transferring and verify exact decreases and recipient increases. Fee-on-transfer, short-transfer, false-return, and incompatible callback behavior revert the complete transaction.
 
 Direct token transfers to the vault remain unaccounted and cannot fund a mandate. There is deliberately no admin sweep or balance override.
+
+## Reservation and bond accounting
+
+A reservation prices the interval beginning at `acquiredAmount + reservedAmount`. Creation recomputes that price on-chain and requires the solver's reviewed `expectedPayout` to match. It then moves the exact payout from `free` to `reserved`, increases mandate `reservedAmount`, and pulls a solver bond in the same transaction.
+
+The deployed bond policy is immutable:
+
+```text
+bond = min(floor(lockedPayout * rateBps / 10,000), cap)
+```
+
+The Module 3 release policy is 100 basis points with a 10 BTKT cap. A result of zero is rejected. Bonds use the mandate settlement token but remain in reservation-isolated escrow; they never enter `funded`, `free`, `reserved`, `spent`, or `refunded`.
+
+At or after `deliveryDeadline`, anyone may expire an unresolved reservation. Expiry atomically subtracts its quantity, moves its payout from `reserved` back to `free`, and transfers its bond to the stored mandate buyer. This works while the mandate is open, paused, cancelled, or expired and never changes the parent mandate status.
+
+`accountedTokenBalance(token)` includes both mandate custody and unresolved bonds. `unresolvedBondBalance(token)` exposes the bond portion independently. Direct transfers remain outside both figures.
 
 ## Ownership and lifecycle
 

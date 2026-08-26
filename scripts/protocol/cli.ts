@@ -23,13 +23,13 @@ async function main(): Promise<void> {
   const command = process.argv[2];
   try {
     if (process.argv.includes("--help")) {
-      process.stdout.write("pnpm protocol:deploy\npnpm protocol:inspect [--mandate <id>] [--registry <address> --market <address> --vault <address> --admin <address>]\n");
+      process.stdout.write("pnpm protocol:deploy\npnpm protocol:inspect [--mandate <id>] [--reservation <id>] [--registry <address> --market <address> --vault <address> --admin <address>]\n");
       return;
     }
     if (command === "deploy") await deployProtocol(output);
     else if (command === "inspect") {
       const values = parseValues(process.argv.slice(3));
-      const unknown = Object.keys(values).filter((key) => !["mandate", "registry", "market", "vault", "admin"].includes(key));
+      const unknown = Object.keys(values).filter((key) => !["mandate", "reservation", "registry", "market", "vault", "admin"].includes(key));
       if (unknown.length > 0) throw new ProtocolCommandError("Validating arguments", `Unknown argument: --${unknown[0]}.`, "Use --help to review the command syntax.");
       await inspectProtocol(values, output);
     }

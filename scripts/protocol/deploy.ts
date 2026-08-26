@@ -11,6 +11,8 @@ import {
 } from "ethers";
 import { attestcoinEnvironment as config } from "../../config/attestcoin-environment.js";
 import { validatePublicConfiguration } from "../attestcoin/environment.js";
+import { evidenceCheckCommand } from "../attestcoin/commands/evidence-check-command.js";
+import { CommandOutput } from "../attestcoin/output.js";
 import { projectRoot } from "../attestcoin/paths.js";
 import { loadContractArtifact } from "./artifacts.js";
 import type { ProtocolDeploymentArtifact } from "./deployment-artifact.js";
@@ -21,6 +23,9 @@ const erc20MetadataAbi = [
   "function decimals() view returns (uint8)",
   "function balanceOf(address) view returns (uint256)",
 ];
+
+const BOND_RATE_BPS = 100n;
+const BOND_CAP = 10n * 10n ** BigInt(config.settlementToken.decimals);
 
 function requiredEnvironment(name: string): string {
   const value = process.env[name]?.trim() ?? "";
@@ -35,7 +40,7 @@ function requiredEnvironment(name: string): string {
 }
 
 export async function deployProtocol(output: ProtocolOutput): Promise<void> {
-  const deploymentPath = path.join(projectRoot, "artifacts", "protocol", "cc3.json");
+  const deploymentPath = path.join(projectRoot, "artifacts", "protocol", "cc3-module3.json");
   try {
     await access(deploymentPath);
     throw new ProtocolCommandError(
@@ -48,6 +53,7 @@ export async function deployProtocol(output: ProtocolOutput): Promise<void> {
     if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
   }
   output.phase("Checking pinned protocol configuration");
+  await evidenceCheckCommand(new CommandOutput(false));
   await validatePublicConfiguration();
 
   const rpcUrl = requiredEnvironment(config.creditcoin.rpcEnv);
@@ -111,7 +117,12 @@ export async function deployProtocol(output: ProtocolOutput): Promise<void> {
   await registry.waitForDeployment();
 
   output.phase("Deploying MozyMarket");
-  const market = await new ContractFactory(marketArtifact.abi, marketArtifact.bytecode.object, signer).deploy(protocolAdmin, await registry.getAddress());
+  const market = await new ContractFactory(marketArtifact.abi, marketArtifact.bytecode.object, signer).deploy(
+    protocolAdmin,
+    await registry.getAddress(),
+    BOND_RATE_BPS,
+    BOND_CAP,
+  );
   const marketTx = market.deploymentTransaction();
   if (!marketTx) throw new Error("MozyMarket deployment transaction is unavailable");
   output.transaction("MozyMarket submitted", marketTx.hash, explorer);
@@ -142,7 +153,7 @@ export async function deployProtocol(output: ProtocolOutput): Promise<void> {
   await marketConfigTx.wait();
 
   const artifact: ProtocolDeploymentArtifact = {
-    schemaVersion: "1",
+    schemaVersion: "2",
     environmentConfigVersion: config.configVersion,
     environmentConfigHash: configHash,
     chainId: config.creditcoin.chainId,
@@ -152,6 +163,7 @@ export async function deployProtocol(output: ProtocolOutput): Promise<void> {
     deployer,
     contracts: { registry: await registry.getAddress(), market: await market.getAddress(), vault: await vault.getAddress() },
     marketId: "1",
+    bondPolicy: { rateBps: BOND_RATE_BPS.toString(), cap: BOND_CAP.toString(), denominator: "10000" },
     transactions: {
       registryDeployment: registryTx.hash,
       marketDeployment: marketTx.hash,
@@ -164,5 +176,6 @@ export async function deployProtocol(output: ProtocolOutput): Promise<void> {
   await mkdir(artifactDirectory, { recursive: true });
   await writeFile(deploymentPath, `${JSON.stringify(artifact, null, 2)}\n`, { flag: "wx" });
   output.phase("Protocol deployed and wired", `Market 1 is enabled; next mandate ID is 1`);
-  output.phase("Deployment artifact", "artifacts/protocol/cc3.json");
+  output.phase("Bond policy", `${BOND_RATE_BPS} bps, capped at ${BOND_CAP} BTKT base units`);
+  output.phase("Deployment artifact", "artifacts/protocol/cc3-module3.json");
 }

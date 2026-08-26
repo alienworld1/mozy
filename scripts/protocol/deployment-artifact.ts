@@ -1,5 +1,5 @@
 export interface ProtocolDeploymentArtifact {
-  schemaVersion: "1";
+  schemaVersion: "2";
   environmentConfigVersion: string;
   environmentConfigHash: string;
   chainId: number;
@@ -9,6 +9,7 @@ export interface ProtocolDeploymentArtifact {
   deployer: string;
   contracts: { registry: string; market: string; vault: string };
   marketId: "1";
+  bondPolicy: { rateBps: string; cap: string; denominator: "10000" };
   transactions: {
     registryDeployment: string;
     marketDeployment: string;

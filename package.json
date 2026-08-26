@@ -17,7 +17,7 @@
     "pricing:test": "node --import tsx --test scripts/pricing/reference.test.ts",
     "protocol:build": "forge build contracts/src",
     "protocol:test": "forge test",
-    "protocol:deploy:local": "forge script contracts/script/DeployLocal.s.sol:DeployLocal --broadcast",
+    "protocol:deploy:local": "forge script contracts/script/DeployLocal.s.sol:DeployLocal --broadcast --rpc-url http://127.0.0.1:8545",
     "protocol:deploy": "node --import tsx scripts/protocol/cli.ts deploy",
     "protocol:inspect": "node --import tsx scripts/protocol/cli.ts inspect"
   },
