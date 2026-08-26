@@ -6,8 +6,13 @@ import { ProtocolCommandError } from "./errors.js";
 
 interface FoundryArtifact {
   abi: InterfaceAbi;
-  bytecode: { object: string };
+  bytecode: {
+    object: string;
+    linkReferences?: Record<string, Record<string, Array<{ start: number; length: number }>>>;
+  };
 }
+
+export type ContractArtifact = FoundryArtifact;
 
 export async function loadContractArtifact(name: string): Promise<FoundryArtifact> {
   const artifactPath = path.join(projectRoot, "out", `${name}.sol`, `${name}.json`);

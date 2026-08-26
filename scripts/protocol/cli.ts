@@ -2,6 +2,8 @@
 import "dotenv/config";
 import { deployProtocol } from "./deploy.js";
 import { inspectProtocol } from "./inspect.js";
+import { settleReservation } from "./settle.js";
+import { checkSettlementEvidence } from "./evidence-check.js";
 import { ProtocolCommandError } from "./errors.js";
 import { ProtocolOutput } from "./output.js";
 
@@ -23,20 +25,28 @@ async function main(): Promise<void> {
   const command = process.argv[2];
   try {
     if (process.argv.includes("--help")) {
-      process.stdout.write("pnpm protocol:deploy\npnpm protocol:inspect [--mandate <id>] [--reservation <id>] [--registry <address> --market <address> --vault <address> --admin <address>]\n");
+      process.stdout.write("pnpm protocol:deploy\npnpm protocol:settle --reservation <id> --proof <path>\npnpm protocol:evidence:check\npnpm protocol:inspect [--mandate <id>] [--reservation <id>] [--receipt <identity>] [--registry <address> --market <address> --vault <address> --settlement <address> --admin <address>]\n");
       return;
     }
     if (command === "deploy") await deployProtocol(output);
+    else if (command === "evidence-check") await checkSettlementEvidence(output);
+    else if (command === "settle") {
+      const values = parseValues(process.argv.slice(3));
+      const unknown = Object.keys(values).filter((key) => !["reservation", "proof"].includes(key));
+      if (unknown.length > 0) throw new ProtocolCommandError("Validating arguments", `Unknown argument: --${unknown[0]}.`, "Use --help to review the command syntax.");
+      await settleReservation(values, output);
+    }
     else if (command === "inspect") {
       const values = parseValues(process.argv.slice(3));
-      const unknown = Object.keys(values).filter((key) => !["mandate", "reservation", "registry", "market", "vault", "admin"].includes(key));
+      const unknown = Object.keys(values).filter((key) => !["mandate", "reservation", "receipt", "registry", "market", "vault", "settlement", "admin"].includes(key));
       if (unknown.length > 0) throw new ProtocolCommandError("Validating arguments", `Unknown argument: --${unknown[0]}.`, "Use --help to review the command syntax.");
       await inspectProtocol(values, output);
     }
-    else throw new ProtocolCommandError("Validating command", `Unknown command: ${command ?? "none"}.`, "Use protocol:deploy or protocol:inspect.");
+    else throw new ProtocolCommandError("Validating command", `Unknown command: ${command ?? "none"}.`, "Use protocol:deploy, protocol:settle, protocol:evidence:check, or protocol:inspect.");
   } catch (error) {
     process.exitCode = output.failure(error, [
       process.env.MOZY_DEPLOYER_PRIVATE_KEY ?? "",
+      process.env.MOZY_RELAYER_PRIVATE_KEY ?? "",
       process.env.CREDITCOIN_RPC_URL ?? "",
     ]);
   }

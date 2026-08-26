@@ -19,6 +19,8 @@
     "protocol:test": "forge test",
     "protocol:deploy:local": "forge script contracts/script/DeployLocal.s.sol:DeployLocal --broadcast --rpc-url http://127.0.0.1:8545",
     "protocol:deploy": "node --import tsx scripts/protocol/cli.ts deploy",
+    "protocol:settle": "node --import tsx scripts/protocol/cli.ts settle",
+    "protocol:evidence:check": "node --import tsx scripts/protocol/cli.ts evidence-check",
     "protocol:inspect": "node --import tsx scripts/protocol/cli.ts inspect"
   },
   "dependencies": {
