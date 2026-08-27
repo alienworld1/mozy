@@ -84,6 +84,7 @@ export function useAcquisitionTransactions(mandateId: bigint) {
         if (nextAction === "refund" && account.free !== 0n) throw new Error("Refund readback did not reconcile");
       }
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["acquisition-snapshot", releaseConfig.configVersion] }),
         queryClient.invalidateQueries({ queryKey: ["acquisition", releaseConfig.configVersion] }),
         queryClient.invalidateQueries({ queryKey: ["owned-acquisitions", releaseConfig.configVersion] }),
         queryClient.invalidateQueries({ queryKey: ["funding-readiness", releaseConfig.configVersion] }),
@@ -98,7 +99,10 @@ export function useAcquisitionTransactions(mandateId: bigint) {
       const statusUncertain = !!broadcastHash && !receiptKnown;
       setUncertain(statusUncertain);
       setMessage(statusUncertain ? "Transaction status is uncertain. Check the transaction before trying again." : nextAction === "approve" && rejected ? "Approval cancelled. No BTKT was moved." : rejected ? "Transaction cancelled. Nothing was submitted." : nextAction === "fund" ? "Funding did not complete. Your acquisition remains in its latest confirmed state." : "The acquisition changed before this action completed. Review the latest state and try again.");
-      await queryClient.invalidateQueries({ queryKey: ["acquisition", releaseConfig.configVersion] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["acquisition-snapshot", releaseConfig.configVersion] }),
+        queryClient.invalidateQueries({ queryKey: ["acquisition", releaseConfig.configVersion] }),
+      ]);
     }
   }, [client, connection.address, connection.chainId, mandateId, queryClient, wallet.data]);
 

@@ -6,18 +6,19 @@ import { usePublicClient } from "wagmi";
 import { marketAbi, vaultAbi } from "@/lib/acquisition-contracts";
 import type { Acquisition, Mandate, VaultAccount } from "./types";
 
-export function useAcquisition(mandateId?: bigint) {
+export function useAcquisition(mandateId?: bigint, snapshotBlock?: bigint) {
   const client = usePublicClient({ chainId: releaseConfig.creditcoin.id });
   return useQuery({
-    queryKey: ["acquisition", releaseConfig.configVersion, releaseConfig.creditcoin.id, mandateId?.toString()],
-    enabled: !!client && !!mandateId,
+    queryKey: ["acquisition", releaseConfig.configVersion, releaseConfig.creditcoin.id, mandateId?.toString(), snapshotBlock?.toString()],
+    enabled: !!client && !!mandateId && snapshotBlock !== undefined,
+    placeholderData: (previous) => previous,
     queryFn: async (): Promise<Acquisition> => {
-      if (!client || !mandateId) throw new Error("Acquisition unavailable");
+      if (!client || !mandateId || snapshotBlock === undefined) throw new Error("Acquisition unavailable");
       const [mandate, account] = await Promise.all([
-        client.readContract({ address: releaseConfig.contracts.market, abi: marketAbi, functionName: "getMandate", args: [mandateId] }),
-        client.readContract({ address: releaseConfig.contracts.vault, abi: vaultAbi, functionName: "getAccount", args: [mandateId] }),
+        client.readContract({ address: releaseConfig.contracts.market, abi: marketAbi, functionName: "getMandate", args: [mandateId], blockNumber: snapshotBlock }),
+        client.readContract({ address: releaseConfig.contracts.vault, abi: vaultAbi, functionName: "getAccount", args: [mandateId], blockNumber: snapshotBlock }),
       ]);
-      return { mandate: mandate as Mandate, account: account as VaultAccount };
+      return { mandate: mandate as Mandate, account: account as VaultAccount, snapshotBlock };
     },
   });
 }

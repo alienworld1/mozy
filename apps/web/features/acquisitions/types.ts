@@ -43,8 +43,44 @@ export type VaultAccount = {
 export type Acquisition = {
   mandate: Mandate;
   account: VaultAccount;
+  snapshotBlock?: bigint;
   creationBlock?: bigint;
   transactionHash?: Hash;
+};
+
+export type Reservation = {
+  id: bigint;
+  mandateId: bigint;
+  solver: Address;
+  quantity: bigint;
+  lockedPayout: bigint;
+  bondAmount: bigint;
+  createdAt: bigint;
+  deliveryDeadline: bigint;
+  sourceStartHeight: bigint;
+  sourceEndHeight: bigint;
+  expiryEligibleHeight: bigint;
+  status: number;
+};
+
+export type InstrumentModel = {
+  targetQuantity: bigint;
+  settledQuantity: bigint;
+  reservedQuantity: bigint;
+  openQuantity: bigint;
+  currentPosition: bigint;
+  pricingMode: PricingMode;
+  startPrice: bigint;
+  endPrice: bigint;
+  snapshotBlock: bigint;
+};
+
+export type FillQuote = {
+  quantity: bigint;
+  startPosition: bigint;
+  endPosition: bigint;
+  payout: bigint;
+  quotedAtBlock: bigint;
 };
 
 export type OwnedAcquisitionResult =

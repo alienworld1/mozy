@@ -7,6 +7,10 @@ export function formatTokenAmount(value: bigint, decimals: number, maximumDecima
   return trimmed ? `${whole}.${trimmed}` : whole;
 }
 
+export function formatExactTokenAmount(value: bigint, decimals: number) {
+  return formatTokenAmount(value, decimals, decimals);
+}
+
 export function formatDateTime(timestamp: bigint) {
   return new Intl.DateTimeFormat(undefined, {
     year: "numeric",
