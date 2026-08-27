@@ -95,6 +95,23 @@ contract ProtocolLifecycleTest is TestBase {
         assertEq(vault.getAccount(second).funded, 0);
     }
 
+    function testPreviewMatchesCreatedFundingForEveryPricingDirection() external {
+        _assertPreviewMatchesCreation(PricingMode.Limit, 2 * UNIT, 3 * UNIT, 3 * UNIT);
+        _assertPreviewMatchesCreation(PricingMode.Range, 2 * UNIT, 2 * UNIT, 4 * UNIT);
+        _assertPreviewMatchesCreation(PricingMode.Range, 2 * UNIT, 4 * UNIT, 2 * UNIT);
+        _assertPreviewMatchesCreation(PricingMode.Range, 2 * UNIT, 3 * UNIT, 3 * UNIT);
+    }
+
+    function _assertPreviewMatchesCreation(PricingMode mode, uint256 target, uint256 start, uint256 end)
+        private
+    {
+        uint64 expiry = uint64(block.timestamp + 1 days);
+        uint256 preview = market.previewMandateFunding(1, BUYER, target, mode, start, end, expiry, 1 hours);
+        vm.prank(BUYER);
+        uint256 id = market.createMandate(1, BUYER, target, mode, start, end, expiry, 1 hours);
+        assertEq(market.getMandate(id).requiredFunding, preview);
+    }
+
     function testUnauthorizedAndInvalidTransitionsDoNotMutateAccounting() external {
         uint256 id = _create(PricingMode.Limit, UNIT, 2 * UNIT, 2 * UNIT);
         vm.prank(OTHER);

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1",
   "verifiedAt": "2026-08-26T15:36:02.726Z",
-  "deploymentArtifact": "artifacts/protocol/cc3-settlement.json",
+  "deploymentArtifact": "artifacts/protocol/cc3-settlement-pre-module6.json",
   "chainId": 102031,
   "contracts": {
     "registry": "0x49d111A920e70F47d83bae8034e8dcb4aC9C76b0",

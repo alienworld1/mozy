@@ -17,6 +17,7 @@ export interface ProtocolDeploymentArtifact {
     decoder: string;
   };
   marketId: "1";
+  deploymentBlock: string;
   bondPolicy: { rateBps: string; cap: string; denominator: "10000" };
   sourceWindowPolicy: { acceptedBlocks: string; settlementGraceBlocks: string; bounds: "inclusive" };
   transactions: {

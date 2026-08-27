@@ -17,6 +17,7 @@ import type { ProtocolOutput } from "./output.js";
 
 interface SettlementEvidence {
   schemaVersion: "1";
+  deploymentArtifact: string;
   chainId: number;
   contracts: ProtocolDeploymentArtifact["contracts"];
   reservationId: string;
@@ -46,9 +47,12 @@ export async function checkSettlementEvidence(output: ProtocolOutput): Promise<v
   const creditcoinRpc = process.env[config.creditcoin.rpcEnv]?.trim();
   const foreignRpc = process.env[config.foreign.rpcEnv]?.trim();
   if (!creditcoinRpc || !foreignRpc) throw new ProtocolCommandError("Checking evidence inputs", "Both configured RPC URLs are required.", "Set the public CC3 and Sepolia RPC URLs in .env.");
-  const [deployment, evidence, marketArtifact, vaultArtifact, settlementArtifact] = await Promise.all([
-    readJson<ProtocolDeploymentArtifact>("artifacts/protocol/cc3-settlement.json"),
-    readJson<SettlementEvidence>("artifacts/protocol/cc3-settlement-evidence.json"),
+  const evidence = await readJson<SettlementEvidence>("artifacts/protocol/cc3-settlement-evidence.json");
+  if (!/^artifacts\/protocol\/cc3-settlement(?:-[a-z0-9-]+)?\.json$/.test(evidence.deploymentArtifact)) {
+    fail("The evidence references an invalid deployment artifact path.");
+  }
+  const [deployment, marketArtifact, vaultArtifact, settlementArtifact] = await Promise.all([
+    readJson<ProtocolDeploymentArtifact>(evidence.deploymentArtifact),
     loadContractArtifact("MozyMarket"),
     loadContractArtifact("SettlementVault"),
     loadContractArtifact("MozySettlement"),

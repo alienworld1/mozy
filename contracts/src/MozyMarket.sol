@@ -181,16 +181,15 @@ contract MozyMarket is Ownable, ReentrancyGuard {
         uint64 mandateExpiry,
         uint64 reservationDuration
     ) external returns (uint256 mandateId) {
-        _requireConfiguredAndRiskEnabled();
-        MarketConfig memory market = registry.requireEnabledMarket(marketId);
-        if (deliveryWallet == address(0)) revert InvalidDeliveryWallet();
-        if (mandateExpiry <= block.timestamp) revert InvalidExpiry();
-        if (reservationDuration == 0 || reservationDuration > mandateExpiry - block.timestamp) {
-            revert InvalidReservationDuration();
-        }
-        PricingLibrary.validateTerms(pricingMode, targetAmount, market.foreignTokenDecimals, startPrice, endPrice);
-        uint256 requiredFunding = PricingLibrary.quote(
-            pricingMode, targetAmount, market.foreignTokenDecimals, startPrice, endPrice, 0, targetAmount
+        (MarketConfig memory market, uint256 requiredFunding) = _previewMandateFunding(
+            marketId,
+            deliveryWallet,
+            targetAmount,
+            pricingMode,
+            startPrice,
+            endPrice,
+            mandateExpiry,
+            reservationDuration
         );
 
         mandateId = nextMandateId++;
@@ -222,6 +221,29 @@ contract MozyMarket is Ownable, ReentrancyGuard {
             startPrice,
             endPrice,
             requiredFunding,
+            mandateExpiry,
+            reservationDuration
+        );
+    }
+
+    /// @notice Returns the exact funding that creation will commit for the supplied terms.
+    function previewMandateFunding(
+        uint256 marketId,
+        address deliveryWallet,
+        uint256 targetAmount,
+        PricingMode pricingMode,
+        uint256 startPrice,
+        uint256 endPrice,
+        uint64 mandateExpiry,
+        uint64 reservationDuration
+    ) external view returns (uint256 requiredFunding) {
+        (, requiredFunding) = _previewMandateFunding(
+            marketId,
+            deliveryWallet,
+            targetAmount,
+            pricingMode,
+            startPrice,
+            endPrice,
             mandateExpiry,
             reservationDuration
         );
@@ -321,6 +343,29 @@ contract MozyMarket is Ownable, ReentrancyGuard {
         }
         mandate.status = MandateStatus.Closed;
         emit MandateClosed(mandateId, msg.sender);
+    }
+
+    function _previewMandateFunding(
+        uint256 marketId,
+        address deliveryWallet,
+        uint256 targetAmount,
+        PricingMode pricingMode,
+        uint256 startPrice,
+        uint256 endPrice,
+        uint64 mandateExpiry,
+        uint64 reservationDuration
+    ) private view returns (MarketConfig memory market, uint256 requiredFunding) {
+        _requireConfiguredAndRiskEnabled();
+        market = registry.requireEnabledMarket(marketId);
+        if (deliveryWallet == address(0)) revert InvalidDeliveryWallet();
+        if (mandateExpiry <= block.timestamp) revert InvalidExpiry();
+        if (reservationDuration == 0 || reservationDuration > mandateExpiry - block.timestamp) {
+            revert InvalidReservationDuration();
+        }
+        PricingLibrary.validateTerms(pricingMode, targetAmount, market.foreignTokenDecimals, startPrice, endPrice);
+        requiredFunding = PricingLibrary.quote(
+            pricingMode, targetAmount, market.foreignTokenDecimals, startPrice, endPrice, 0, targetAmount
+        );
     }
 
     function quoteMandate(uint256 mandateId, uint256 quantity)

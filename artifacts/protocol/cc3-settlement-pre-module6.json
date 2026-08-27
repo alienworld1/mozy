@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "3",
+  "environmentConfigVersion": "attestcoin-spike-cc3-sepolia-2026-08-25",
+  "environmentConfigHash": "0x68275545f5e042b19d3e71a3341e2cf785b9c6a6496dbcba5a8a35e5197be7fb",
+  "chainId": 102031,
+  "deployedAt": "2026-08-26T15:13:34.844Z",
+  "compiler": {
+    "version": "0.8.30",
+    "optimizer": true,
+    "optimizerRuns": 200,
+    "viaIr": true,
+    "evmVersion": "shanghai"
+  },
+  "protocolAdmin": "0x6B313ED963a947c8e63d18cdae70fE23c6b4d576",
+  "deployer": "0x6B313ED963a947c8e63d18cdae70fE23c6b4d576",
+  "contracts": {
+    "registry": "0x49d111A920e70F47d83bae8034e8dcb4aC9C76b0",
+    "market": "0x79f8EE69eA0A917aaA34A9DFBBCbD654684517C2",
+    "vault": "0x4F75142937F8c8a732305BcCC163833F5A7F8250",
+    "settlement": "0xcd0EF8892C7C4D3D576C30c442047115cA77509D",
+    "verifier": "0x0000000000000000000000000000000000000FD2",
+    "chainInfo": "0x0000000000000000000000000000000000000fD3",
+    "decoder": "0x731c345d79Fb8BbDC541f9DF3b6317585F849F9f"
+  },
+  "marketId": "1",
+  "deploymentBlock": "5377925",
+  "bondPolicy": {
+    "rateBps": "100",
+    "cap": "10000000000000000000",
+    "denominator": "10000"
+  },
+  "sourceWindowPolicy": {
+    "acceptedBlocks": "256",
+    "settlementGraceBlocks": "64",
+    "bounds": "inclusive"
+  },
+  "transactions": {
+    "registryDeployment": "0xccc465942dc866fff2bab1ba5c47b6e8803c0e81d0a17920d0858e99c20edbe6",
+    "marketDeployment": "0xa58a3a2b22491df0cd9f14600f015ff3073af3935387d3a9ec4204b6caaf53f2",
+    "vaultDeployment": "0x669c34d1dc34b0841b2fda9ce1a6578751ba446dc30564514879611852e59ea5",
+    "settlementDeployment": "0xc6ef90f4b7d11ed20913455cb7427f143105ba9e620f71983e79bce95d86e3ad",
+    "vaultConfiguration": "0x61227817cf8f29ff56d872fadbcac6aa53033d41b75659a793c7fc109f351054",
+    "settlementConfiguration": "0x2748753b0b358956c5a958142631370d37fe3c66f96d278e814d2757fc21d29c",
+    "marketConfiguration": "0x0c895195b8d9a12c2a4c22efba6724650c9539c5dd3eb88074c67fc7fded3ec5"
+  }
+}

@@ -220,6 +220,7 @@ export async function deployProtocol(output: ProtocolOutput): Promise<void> {
       decoder: config.attestcoin.decoderAddress,
     },
     marketId: "1",
+    deploymentBlock: String(registryTx.blockNumber ?? (await registryTx.wait())?.blockNumber),
     bondPolicy: { rateBps: BOND_RATE_BPS.toString(), cap: BOND_CAP.toString(), denominator: "10000" },
     sourceWindowPolicy: {
       acceptedBlocks: sourceWindowBlocks.toString(),
