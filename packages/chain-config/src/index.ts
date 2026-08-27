@@ -29,6 +29,7 @@ const deploymentSchema = z.object({
     settlement: address,
   }),
   marketId: z.string().regex(/^\d+$/),
+  deploymentBlock: z.string().regex(/^\d+$/),
 });
 
 const browserEnvironmentSchema = z.object({
@@ -123,6 +124,7 @@ export const releaseConfig = Object.freeze({
   },
   contracts: deployment.contracts,
   marketId: deployment.marketId,
+  deploymentBlock: BigInt(deployment.deploymentBlock),
 });
 
 export const supportedChains = [creditcoinChain, deliveryChain] as const;

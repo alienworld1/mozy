@@ -1,0 +1,3 @@
+export function UnavailableMandateRow({ mandateId, onRetry }: { mandateId: bigint; onRetry: () => void }) {
+  return <article className="flex flex-col gap-4 border-b border-error py-6 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-mono text-xs text-ink-tertiary">M{mandateId.toString()}</p><p className="mt-2 text-sm text-error">We couldn’t refresh this acquisition. No on-chain state was changed.</p></div><button type="button" onClick={onRetry} className="min-h-11 rounded-control border border-line-strong px-4 text-sm font-medium outline-none focus-visible:outline-2 focus-visible:outline-signal">Try again</button></article>;
+}

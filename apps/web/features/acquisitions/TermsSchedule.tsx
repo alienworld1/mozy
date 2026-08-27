@@ -1,0 +1,8 @@
+import { formatDateTime, formatDuration, formatTokenAmount } from "./format";
+import type { Mandate } from "./types";
+import { releaseConfig } from "@mozy/chain-config";
+
+export function TermsSchedule({ mandate }: { mandate: Mandate }) {
+  const pricing = mandate.pricingMode === 0 ? `Limit · ${formatTokenAmount(mandate.startPrice, releaseConfig.settlementToken.decimals)} BTKT / TEST` : `Range · ${formatTokenAmount(mandate.startPrice, releaseConfig.settlementToken.decimals)} → ${formatTokenAmount(mandate.endPrice, releaseConfig.settlementToken.decimals)} BTKT / TEST`;
+  return <section className="mt-12"><h2 className="text-lg font-medium">Terms</h2><dl className="mt-4 divide-y divide-line border-y border-line text-sm"><div className="grid gap-1 py-4 sm:grid-cols-[180px_1fr]"><dt className="text-ink-secondary">Pricing</dt><dd>{pricing}</dd></div><div className="grid gap-1 py-4 sm:grid-cols-[180px_1fr]"><dt className="text-ink-secondary">Delivery wallet</dt><dd className="break-all font-mono text-xs">{mandate.deliveryWallet}</dd></div><div className="grid gap-1 py-4 sm:grid-cols-[180px_1fr]"><dt className="text-ink-secondary">Mandate expiry</dt><dd>{formatDateTime(mandate.mandateExpiry)}</dd></div><div className="grid gap-1 py-4 sm:grid-cols-[180px_1fr]"><dt className="text-ink-secondary">Reservation duration</dt><dd>{formatDuration(mandate.reservationDuration)}</dd></div></dl><p className="mt-5 max-w-2xl text-sm leading-6 text-ink-secondary">Aggregate acquired and reserved amounts come directly from Creditcoin. Individual reservations and fills will appear when verified activity indexing is available.</p></section>;
+}
