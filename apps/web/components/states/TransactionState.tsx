@@ -97,7 +97,7 @@ export function TransactionState({
               rel="noopener noreferrer"
               className="min-h-11 content-center underline underline-offset-4 outline-none focus-visible:outline-2 focus-visible:outline-signal"
             >
-              View transaction
+              {phase === "rejected" ? "Check transaction" : "View transaction"}
             </a>
           ) : (
             <button
