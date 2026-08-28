@@ -1,5 +1,5 @@
-import { EmptyState } from "@/components/states/EmptyState";
 import { PageHeader } from "@/components/shell/PageHeader";
+import { MarketSchedule } from "@/features/markets/MarketSchedule";
 
 export default function MarketsPage() {
   return (
@@ -8,7 +8,7 @@ export default function MarketsPage() {
         title="Markets"
         description="Funded acquisition demand across Mozy’s supported market."
       />
-      <EmptyState message="Open acquisitions will appear here." />
+      <MarketSchedule />
     </>
   );
 }
