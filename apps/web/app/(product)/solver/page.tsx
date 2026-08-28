@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/shell/PageHeader";
-import { WalletScopedEmptyState } from "@/components/states/WalletScopedEmptyState";
+import { SolverSchedule } from "@/features/solver/SolverSchedule";
 
 export default function SolverPage() {
   return (
@@ -8,10 +8,7 @@ export default function SolverPage() {
         title="Solver"
         description="Reserve delivery work and follow each payout."
       />
-      <WalletScopedEmptyState
-        disconnectedMessage="Connect your wallet to view reservations and deliveries for this address."
-        connectedMessage="Your reservations and deliveries will appear here."
-      />
+      <SolverSchedule />
     </>
   );
 }
