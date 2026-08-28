@@ -122,6 +122,12 @@ export const releaseConfig = Object.freeze({
     symbol: attestcoinEnvironment.settlementToken.symbol,
     decimals: attestcoinEnvironment.settlementToken.decimals,
   },
+  demoFunding: {
+    deliveryTokenTarget: 100n * 10n ** BigInt(attestcoinEnvironment.deliveryToken.decimals),
+    settlementTokenTarget: 100n * 10n ** BigInt(attestcoinEnvironment.settlementToken.decimals),
+    sepoliaGasFaucetUrl: "https://cloud.google.com/application/web3/faucet/ethereum/sepolia",
+    creditcoinGasFaucetUrl: "https://docs.creditcoin.org/wallets/using-testnet-faucet",
+  },
   contracts: deployment.contracts,
   marketId: deployment.marketId,
   deploymentBlock: BigInt(deployment.deploymentBlock),

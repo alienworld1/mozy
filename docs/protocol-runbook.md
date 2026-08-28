@@ -128,3 +128,24 @@ After deployment, use the disposable buyer signer to:
 6. confirm the mandate is `Open`, custody is at the vault, and the self-audit passes.
 
 Operator tooling should map stable custom errors to the product copy in the mandate funding specification. In particular, never describe an underfunded mandate as open or reservable, and never describe mandate funding as Attestcoin settlement.
+
+## Test-funds dispenser operations
+
+The web app can allocate a small judge-friendly bundle from two dedicated testnet-only wallets. This convenience path is separate from Mozy delivery and settlement, deploys no Sepolia contract, and never mints BTKT. Configure the web runtime with:
+
+```text
+MOZY_FAUCET_ENABLED=true
+MOZY_SEPOLIA_FAUCET_PRIVATE_KEY=<dedicated disposable Sepolia key>
+MOZY_CREDITCOIN_FAUCET_PRIVATE_KEY=<dedicated disposable CC3 key>
+UPSTASH_REDIS_REST_URL=<server-only REST endpoint>
+UPSTASH_REDIS_REST_TOKEN=<server-only token>
+MOZY_FAUCET_DAILY_BUNDLE_LIMIT=100
+```
+
+Never reuse the protocol admin, deployer, settlement relayer, or an account that has held real assets. Fund the Sepolia dispenser with ETH and at least 100 TEST per expected allocation. The public TEST contract supports `mint(uint256)`, so replenish that inventory from the dedicated dispenser account.
+
+Fund the Creditcoin dispenser with tCTC and at least 100 BTKT per expected allocation. BTKT is not freely mintable: replenish it through the pinned official Hello Bridge burn, proof, and verified mint flow described in `docs/attestcoin.md`. The dispenser only transfers that pre-bridged inventory.
+
+Before judging, open `/test-funds` with a fresh disposable wallet and confirm both token balances, both native gas checks, signature verification, explorer links, and the 24-hour repeat-claim protection. Monitor both dispenser addresses on their explorers and refill before either token balance falls below two bundles or native gas becomes low. Set `MOZY_FAUCET_ENABLED=false` to stop new allocations immediately; existing submitted transactions remain canonical and must not be resent automatically.
+
+Rotate a dispenser key by disabling the feature, waiting for any submitted transactions to resolve, funding a new disposable account, replacing only that network's server secret, and re-enabling after a fresh readiness check. Never log, commit, or expose either key through a `NEXT_PUBLIC_` variable.

@@ -3,6 +3,7 @@
 import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { IoCloseOutline, IoCopyOutline } from "react-icons/io5";
 import { getAddress, isAddress } from "viem";
 import {
@@ -311,6 +312,13 @@ export function WalletControl() {
                     >
                       {isDisconnecting ? "Disconnecting" : "Disconnect"}
                     </button>
+                    <Link
+                      href="/test-funds"
+                      onClick={closeSurface}
+                      className="mt-3 flex min-h-11 w-full items-center justify-center rounded-control border border-line-strong px-4 text-sm font-medium outline-none hover:bg-wash focus-visible:outline-2 focus-visible:outline-signal"
+                    >
+                      Check test funds
+                    </Link>
                   </>
                 ) : availableConnectors.length > 0 ? (
                   <div className="divide-y divide-line border-y border-line">
