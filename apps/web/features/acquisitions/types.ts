@@ -83,6 +83,48 @@ export type FillQuote = {
   quotedAtBlock: bigint;
 };
 
+export const reservationEligibilities = [
+  "Eligible",
+  "Protocol paused",
+  "Market disabled",
+  "Mandate not open",
+  "Insufficient lifetime",
+  "Insufficient payout budget",
+] as const;
+
+export const reservationStatuses = ["Active", "Expired", "Settled"] as const;
+
+export type ReservationQuote = {
+  mandateId: bigint;
+  startPosition: bigint;
+  quantity: bigint;
+  endPosition: bigint;
+  payout: bigint;
+  bondAmount: bigint;
+  reservationDuration: bigint;
+  eligibleUntil: bigint;
+  sourceChainKey: bigint;
+  foreignToken: Address;
+  deliveryWallet: Address;
+  settlementToken: Address;
+  eligibility: number;
+  quotedAtBlock: bigint;
+  quotedAtTimestamp: bigint;
+};
+
+export type ReservationRequirements = {
+  market: {
+    sourceChainKey: bigint;
+    foreignToken: Address;
+    foreignTokenDecimals: number;
+    settlementToken: Address;
+    settlementTokenDecimals: number;
+    enabled: boolean;
+  };
+  deliveryWallet: Address;
+  settlementToken: Address;
+};
+
 export type OwnedAcquisitionResult =
   | { mandateId: bigint; acquisition: Acquisition; unavailable?: never }
   | { mandateId: bigint; acquisition?: never; unavailable: true };
