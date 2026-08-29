@@ -27,7 +27,17 @@ export function MarketSchedule() {
     return (
       <EmptyState
         message="No open acquisitions yet."
-        supporting="Funded acquisitions will appear here when they are ready for reservation."
+        supporting={
+          <>
+            Funded acquisitions are delivery work a solver may reserve.{" "}
+            <Link
+              href="/how-mozy-works"
+              className="font-medium text-ink underline underline-offset-4 outline-none focus-visible:outline-2 focus-visible:outline-signal"
+            >
+              How Mozy works
+            </Link>
+          </>
+        }
       />
     );
 

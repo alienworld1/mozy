@@ -42,14 +42,23 @@ export function SolverSchedule() {
     return (
       <section className="mt-10 border-y border-line py-12">
         <p className="max-w-xl text-[15px] leading-6 text-ink-secondary">
-          Reserve a fill to lock your payout before delivering.
+          Reserve first, send from the same address, then wait for verified
+          settlement.
         </p>
-        <Link
-          href="/markets"
-          className="mt-6 inline-flex min-h-11 items-center rounded-control bg-signal px-4 text-sm font-medium text-paper-raised outline-none hover:bg-signal-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
-        >
-          Browse markets
-        </Link>
+        <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+          <Link
+            href="/markets"
+            className="inline-flex min-h-11 items-center rounded-control bg-signal px-4 text-sm font-medium text-paper-raised outline-none hover:bg-signal-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
+          >
+            Browse markets
+          </Link>
+          <Link
+            href="/how-mozy-works"
+            className="inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4 outline-none focus-visible:outline-2 focus-visible:outline-signal"
+          >
+            How Mozy works
+          </Link>
+        </div>
       </section>
     );
   const active = query.data.filter((row) => row.reservation.status === 0);

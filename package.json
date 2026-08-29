@@ -9,6 +9,7 @@
     "web:lint": "pnpm --filter @mozy/web lint",
     "web:build": "pnpm --filter @mozy/web build",
     "web:test": "pnpm --filter @mozy/web test",
+    "docs:check": "node --import tsx scripts/docs/check.ts",
     "attestcoin:preflight": "tsx scripts/attestcoin/cli.ts preflight",
     "attestcoin:transfer": "tsx scripts/attestcoin/cli.ts transfer",
     "attestcoin:inspect": "tsx scripts/attestcoin/cli.ts inspect",

@@ -30,6 +30,16 @@ const deploymentSchema = z.object({
   }),
   marketId: z.string().regex(/^\d+$/),
   deploymentBlock: z.string().regex(/^\d+$/),
+  bondPolicy: z.object({
+    rateBps: z.string().regex(/^\d+$/),
+    cap: z.string().regex(/^\d+$/),
+    denominator: z.string().regex(/^\d+$/),
+  }),
+  sourceWindowPolicy: z.object({
+    acceptedBlocks: z.string().regex(/^\d+$/),
+    settlementGraceBlocks: z.string().regex(/^\d+$/),
+    bounds: z.literal("inclusive"),
+  }),
 });
 
 const browserEnvironmentSchema = z.object({
@@ -143,6 +153,18 @@ export const releaseConfig = Object.freeze({
   contracts: deployment.contracts,
   marketId: deployment.marketId,
   deploymentBlock: BigInt(deployment.deploymentBlock),
+  bondPolicy: {
+    rateBps: BigInt(deployment.bondPolicy.rateBps),
+    cap: BigInt(deployment.bondPolicy.cap),
+    denominator: BigInt(deployment.bondPolicy.denominator),
+  },
+  sourceWindowPolicy: {
+    acceptedBlocks: BigInt(deployment.sourceWindowPolicy.acceptedBlocks),
+    settlementGraceBlocks: BigInt(
+      deployment.sourceWindowPolicy.settlementGraceBlocks,
+    ),
+    bounds: deployment.sourceWindowPolicy.bounds,
+  },
 });
 
 export const supportedChains = [creditcoinChain, deliveryChain] as const;

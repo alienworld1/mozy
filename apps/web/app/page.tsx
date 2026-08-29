@@ -18,12 +18,37 @@ export default function HomePage() {
             Fund one acquisition on Creditcoin. Solvers deliver on the
             supported chain, and payment unlocks after delivery is verified.
           </p>
-          <div className="mt-12 flex items-center border-t border-line pt-6">
+          <ol className="mt-10 max-w-3xl border-y border-line">
+            {[
+              "Fund the acquisition on Creditcoin.",
+              "A solver reserves a fill and sends TEST directly to your Ethereum Sepolia wallet.",
+              "Payment unlocks after Attestcoin verification confirms delivery.",
+            ].map((statement, index) => (
+              <li
+                key={statement}
+                className="grid grid-cols-[32px_1fr] gap-3 border-t border-line py-4 first:border-t-0"
+              >
+                <span className="font-mono text-xs text-ink-tertiary">
+                  0{index + 1}
+                </span>
+                <span className="text-[15px] leading-6 text-ink-secondary">
+                  {statement}
+                </span>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line pt-6">
             <Link
               href="/markets"
               className="inline-flex min-h-11 items-center justify-center rounded-control bg-signal px-5 text-sm font-medium text-paper-raised transition-colors hover:bg-signal-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-signal"
             >
               Explore markets
+            </Link>
+            <Link
+              href="/how-mozy-works"
+              className="inline-flex min-h-11 items-center text-sm font-medium underline decoration-line-strong underline-offset-4 outline-none hover:decoration-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
+            >
+              How Mozy works
             </Link>
           </div>
         </div>

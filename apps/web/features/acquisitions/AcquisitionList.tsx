@@ -8,6 +8,7 @@ import { StructuralSkeleton } from "@/components/states/StructuralSkeleton";
 import { MandateScheduleRow } from "./MandateScheduleRow";
 import { useOwnedAcquisitions } from "./useOwnedAcquisitions";
 import { UnavailableMandateRow } from "./UnavailableMandateRow";
+import Link from "next/link";
 
 export function AcquisitionList() {
   const connection = useConnection();
@@ -17,7 +18,24 @@ export function AcquisitionList() {
   if (!buyer) return <EmptyState message="Connect your wallet to view acquisition mandates for this address." />;
   if (query.isLoading) return <div className="mt-10"><StructuralSkeleton /></div>;
   if (query.isError) return <InlineRecoveryMessage title="Acquisitions unavailable" message="We couldn't load your acquisitions. Try again." onRetry={() => void query.refetch()} />;
-  if (!query.data?.length) return <EmptyState message="Acquire assets without moving your whole treasury first." />;
+  if (!query.data?.length)
+    return (
+      <EmptyState
+        message="Acquire assets without moving your whole treasury first."
+        supporting={
+          <>
+            You fund payment on Creditcoin and receive TEST at your configured
+            Ethereum Sepolia wallet.{" "}
+            <Link
+              href="/how-mozy-works"
+              className="font-medium text-ink underline underline-offset-4 outline-none focus-visible:outline-2 focus-visible:outline-signal"
+            >
+              How Mozy works
+            </Link>
+          </>
+        }
+      />
+    );
 
   const available = query.data.flatMap((item) => item.acquisition ? [item.acquisition] : []);
   const unavailable = query.data.filter((item) => item.unavailable);

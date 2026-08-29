@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { m, useReducedMotion } from "motion/react";
 import { releaseConfig } from "@mozy/chain-config";
 import { StructuralSkeleton } from "@/components/states/StructuralSkeleton";
@@ -257,6 +258,15 @@ export function VerificationSequence({
           );
         })}
       </ol>
+      {effectivePhase === "waiting_for_verification" ||
+      effectivePhase === "proof_ready" ? (
+        <Link
+          href="/how-mozy-works#verification-time"
+          className="inline-flex min-h-11 items-center text-xs font-medium text-ink-secondary underline decoration-line-strong underline-offset-4 outline-none hover:text-ink focus-visible:outline-2 focus-visible:outline-signal"
+        >
+          Why verification takes time
+        </Link>
+      ) : null}
       {candidate?.settlementTransactionHash ? (
         <a
           href={`${releaseConfig.creditcoin.blockExplorers.default.url}/tx/${candidate.settlementTransactionHash}`}

@@ -5,3 +5,8 @@ export const primaryNavigation = [
   { label: "Activity", href: "/activity", requiresWallet: false },
   { label: "Test funds", href: "/test-funds", requiresWallet: false },
 ] as const;
+
+export const educationResource = {
+  label: "How Mozy works",
+  href: "/how-mozy-works",
+} as const;

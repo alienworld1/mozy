@@ -1,9 +1,11 @@
+import type { ReactNode } from "react";
+
 export function EmptyState({
   message,
   supporting,
 }: {
   message: string;
-  supporting?: string;
+  supporting?: ReactNode;
 }) {
   return (
     <section className="mt-10" aria-label="Workspace status">
