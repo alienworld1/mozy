@@ -59,11 +59,6 @@ export function ReceiptRelationship({ receipt }: { receipt: DeliveryReceipt }) {
           <div className="mt-4"><CopyableValue label="Creditcoin settlement transaction" value={receipt.creditcoin.transactionHash} /></div>
         </m.article>
       </div>
-      <ol className="sr-only">
-        <li>Foreign delivery: {observed} {receipt.foreign.tokenSymbol} delivered to the buyer.</li>
-        <li>Attestcoin verification: verified and replay identity consumed.</li>
-        <li>Creditcoin settlement: {payout} {receipt.creditcoin.payoutTokenSymbol} released to the solver.</li>
-      </ol>
       {receipt.foreign.directDeliveryVerified ? (
         <p className="mt-8 border-l-2 border-line-strong pl-4 text-sm text-ink-secondary">No Mozy delivery contract was involved.</p>
       ) : null}

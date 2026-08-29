@@ -1,6 +1,11 @@
 "use client";
 
-export default function GlobalError({ retry }: { retry: () => void }) {
+export default function GlobalError({
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
   return (
     <html lang="en">
       <body className="flex min-h-screen items-center justify-center bg-paper px-4 text-ink">
@@ -17,7 +22,7 @@ export default function GlobalError({ retry }: { retry: () => void }) {
           </p>
           <button
             type="button"
-            onClick={retry}
+            onClick={reset}
             className="mt-6 min-h-11 rounded-control bg-signal px-4 text-sm font-medium text-paper-raised outline-none hover:bg-signal-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
           >
             Try again

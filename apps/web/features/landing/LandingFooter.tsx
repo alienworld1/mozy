@@ -4,14 +4,18 @@ import type { LandingEvidence } from "./landing-evidence";
 
 const repositoryBase = "https://github.com/alienworld1/mozy";
 
-export function LandingFooter({ evidence }: { evidence: LandingEvidence }) {
+export function LandingFooter({ evidence }: { evidence?: LandingEvidence }) {
   const links = [
     { label: "Markets", href: "/markets", internal: true },
     { label: "Architecture", href: `${repositoryBase}/blob/main/docs/architecture.md`, internal: false },
     { label: "Security", href: `${repositoryBase}/blob/main/docs/security.md`, internal: false },
     { label: "Repository", href: repositoryBase, internal: false },
-    { label: "Sepolia delivery", href: evidence.foreignExplorerUrl, internal: false },
-    { label: "Creditcoin settlement", href: evidence.settlementExplorerUrl, internal: false },
+    ...(evidence
+      ? [
+          { label: "Sepolia delivery", href: evidence.foreignExplorerUrl, internal: false as const },
+          { label: "Creditcoin settlement", href: evidence.settlementExplorerUrl, internal: false as const },
+        ]
+      : []),
   ] as const;
 
   return (

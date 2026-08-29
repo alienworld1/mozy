@@ -75,11 +75,19 @@ button {
   font: inherit;
 }
 
+:focus-visible {
+  scroll-margin: 24px;
+}
+
 ::selection {
   background: var(--wash-strong);
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+
   *,
   *::before,
   *::after {

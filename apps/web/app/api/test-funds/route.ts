@@ -65,7 +65,7 @@ export async function POST(request: Request) {
   } catch (error) {
     const message = error instanceof TestFundsUnavailableError
       ? "The test-funds dispenser is temporarily unavailable. Nothing was sent from your wallet."
-      : "Mozy couldn’t prepare the demo funds. Nothing was sent from your wallet.";
+      : "Mozy couldn’t prepare the testnet funds. Nothing was sent from your wallet.";
     return failure(503, "dispenser_unavailable", message);
   }
 }

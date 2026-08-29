@@ -14,6 +14,7 @@ export function CandidateReplacementDialog({
 }) {
   const dialog = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
     const node = dialog.current;
     const focusable = node?.querySelectorAll<HTMLElement>("button");
     focusable?.[0]?.focus();
@@ -31,7 +32,10 @@ export function CandidateReplacementDialog({
       }
     }
     document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      previous?.focus();
+    };
   }, [onKeep]);
   return createPortal(
     <div
@@ -45,7 +49,7 @@ export function CandidateReplacementDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="replacement-title"
-        className="w-full max-w-md rounded-control border border-line-strong bg-paper-raised p-5 shadow-control"
+        className="max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto rounded-control border border-line-strong bg-paper-raised p-5 shadow-control"
       >
         <p className="font-mono text-[10px] tracking-wide text-ink-tertiary">
           REPLACE CANDIDATE

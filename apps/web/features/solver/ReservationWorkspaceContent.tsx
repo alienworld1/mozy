@@ -448,7 +448,7 @@ export function ReservationWorkspaceContent({
                   href="/test-funds"
                   className="mt-2 inline-flex min-h-11 items-center text-xs font-medium underline underline-offset-4 outline-none focus-visible:outline-2 focus-visible:outline-signal"
                 >
-                  Get demo funds
+                  Get testnet funds
                 </Link>
               ) : null}
             </div>

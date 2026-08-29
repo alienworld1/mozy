@@ -254,7 +254,7 @@ export function ReservationTerms({
           {connected && rightNetwork && readiness.data && !balanceSufficient ? (
             <div className="mt-6">
               <DisabledAction reason={`This wallet needs at least ${bond} ${releaseConfig.settlementToken.symbol} for the reservation bond.`}>Reserve fill</DisabledAction>
-              <Link href="/test-funds" className="mt-2 inline-flex min-h-11 items-center text-xs font-medium underline underline-offset-4 outline-none focus-visible:outline-2 focus-visible:outline-signal">Get demo funds</Link>
+              <Link href="/test-funds" className="mt-2 inline-flex min-h-11 items-center text-xs font-medium underline underline-offset-4 outline-none focus-visible:outline-2 focus-visible:outline-signal">Get testnet funds</Link>
             </div>
           ) : null}
           {connected &&

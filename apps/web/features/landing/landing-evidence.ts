@@ -1,5 +1,6 @@
 import { attestcoinEnvironment } from "../../../../config/attestcoin-environment";
 import settlementEvidence from "../../../../artifacts/protocol/cc3-settlement-evidence.json";
+import settlementDeployment from "../../../../artifacts/protocol/cc3-settlement.json";
 import { formatUnits } from "viem";
 import { z } from "zod";
 
@@ -123,4 +124,27 @@ export function parseLandingEvidence(input: unknown): LandingEvidence {
   };
 }
 
-export const landingEvidence = parseLandingEvidence(settlementEvidence);
+export function evidenceMatchesDeployment(
+  input: unknown,
+  deployment: { chainId: number; contracts: Record<string, string> },
+) {
+  const parsed = landingEvidenceSchema.safeParse(input);
+  if (!parsed.success || parsed.data.chainId !== deployment.chainId) return false;
+  const candidate = input as {
+    deploymentArtifact?: string;
+    contracts?: Record<string, string>;
+  };
+  if (candidate.deploymentArtifact !== "artifacts/protocol/cc3-settlement.json") {
+    return false;
+  }
+  return Object.entries(deployment.contracts).every(
+    ([name, value]) => candidate.contracts?.[name]?.toLowerCase() === value.toLowerCase(),
+  );
+}
+
+export const landingEvidence = evidenceMatchesDeployment(
+  settlementEvidence,
+  settlementDeployment,
+)
+  ? parseLandingEvidence(settlementEvidence)
+  : undefined;

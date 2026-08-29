@@ -28,6 +28,22 @@ export const metadata: Metadata = {
   },
   description:
     "Fund an acquisition on Creditcoin, receive assets directly on Ethereum Sepolia, and release payment after verified delivery.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "Mozy — Buy there. Pay here.",
+    description:
+      "An ordinary Ethereum Sepolia delivery becomes an enforceable Creditcoin settlement right after verification.",
+    type: "website",
+    url: "/",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "Mozy — Buy there. Pay here." }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Mozy — Buy there. Pay here.",
+    description:
+      "Fund on Creditcoin. Receive a direct Ethereum Sepolia delivery. Settle after verification.",
+    images: ["/opengraph-image"],
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

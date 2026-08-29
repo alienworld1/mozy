@@ -25,10 +25,10 @@ export function TestFundsWorkspace() {
   const reduceMotion = useReducedMotion();
   const funds = useTestFunds();
   if (!funds.address) {
-    return <WalletScopedEmptyState connectedMessage="Reconnect your wallet to check its demo funds." disconnectedMessage="Connect a wallet to receive testnet-only funds on both supported networks." />;
+    return <WalletScopedEmptyState connectedMessage="Reconnect your wallet to check its testnet funds." disconnectedMessage="Connect a wallet to receive testnet-only funds on both supported networks." />;
   }
   if (funds.balances.isLoading) {
-    return <div className="mt-10 h-80 animate-pulse border-y border-line bg-wash motion-reduce:animate-none" aria-label="Checking demo-fund readiness" />;
+    return <div className="mt-10 h-80 animate-pulse border-y border-line bg-wash motion-reduce:animate-none" aria-label="Checking testnet-fund readiness" />;
   }
   if (funds.balances.isError || !funds.balances.data) {
     return (
@@ -52,7 +52,7 @@ export function TestFundsWorkspace() {
         <div className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-ink pb-5">
           <div>
             <p className="font-mono text-[10px] tracking-wide text-ink-tertiary">CONNECTED WALLET</p>
-            <h2 id="readiness-title" className="mt-2 text-2xl font-medium">Demo readiness</h2>
+            <h2 id="readiness-title" className="mt-2 text-2xl font-medium">Testnet readiness</h2>
           </div>
           <div className="text-right">
             <p className="max-w-48 truncate font-mono text-xs text-ink-tertiary" title={funds.address}>{funds.address}</p>
@@ -60,27 +60,27 @@ export function TestFundsWorkspace() {
           </div>
         </div>
         <ul className="divide-y divide-line border-b border-line">
-          <ReadinessRow label="Sepolia gas" network={releaseConfig.foreign.name} value={`${Number(formatEther(balances.sepoliaGas)).toLocaleString(undefined, { maximumFractionDigits: 5 })} ETH`} state={balances.sepoliaGas > 0n ? "ready" : "needed"} detail="Pays for the solver’s direct TEST delivery." href={balances.sepoliaGas === 0n ? releaseConfig.demoFunding.sepoliaGasFaucetUrl : undefined} hrefLabel="Open Sepolia faucet" />
-          <ReadinessRow label={`${releaseConfig.deliveryToken.symbol} delivery token`} network={releaseConfig.foreign.name} value={`${formatTokenAmount(balances.test, releaseConfig.deliveryToken.decimals)} ${releaseConfig.deliveryToken.symbol}`} state={testState} detail={tokenDetail(`Mozy tops this wallet up to ${formatTokenAmount(releaseConfig.demoFunding.deliveryTokenTarget, releaseConfig.deliveryToken.decimals)} ${releaseConfig.deliveryToken.symbol}.`, funds.claim?.assets.test)} href={testHash ? `${releaseConfig.foreign.blockExplorers.default.url}/tx/${testHash}` : undefined} hrefLabel="View TEST transfer" />
-          <ReadinessRow label="Creditcoin gas" network={releaseConfig.creditcoin.name} value={`${Number(formatEther(balances.creditcoinGas)).toLocaleString(undefined, { maximumFractionDigits: 5 })} ${releaseConfig.creditcoin.nativeCurrency.symbol}`} state={balances.creditcoinGas > 0n ? "ready" : "needed"} detail="Pays for acquisitions, reservations, and approvals." href={balances.creditcoinGas === 0n ? releaseConfig.demoFunding.creditcoinGasFaucetUrl : undefined} hrefLabel="Open Creditcoin faucet" />
-          <ReadinessRow label={`${releaseConfig.settlementToken.symbol} settlement token`} network={releaseConfig.creditcoin.name} value={`${formatTokenAmount(balances.btkt, releaseConfig.settlementToken.decimals)} ${releaseConfig.settlementToken.symbol}`} state={btktState} detail={tokenDetail(`Mozy tops this wallet up to ${formatTokenAmount(releaseConfig.demoFunding.settlementTokenTarget, releaseConfig.settlementToken.decimals)} ${releaseConfig.settlementToken.symbol}.`, funds.claim?.assets.btkt)} href={btktHash ? `${releaseConfig.creditcoin.blockExplorers.default.url}/tx/${btktHash}` : undefined} hrefLabel="View BTKT transfer" />
+          <ReadinessRow label="Sepolia gas" network={releaseConfig.foreign.name} value={`${Number(formatEther(balances.sepoliaGas)).toLocaleString(undefined, { maximumFractionDigits: 5 })} ETH`} state={balances.sepoliaGas > 0n ? "ready" : "needed"} detail="Pays for the solver’s direct TEST delivery." href={balances.sepoliaGas === 0n ? releaseConfig.testnetFunding.sepoliaGasFaucetUrl : undefined} hrefLabel="Open Sepolia faucet" />
+          <ReadinessRow label={`${releaseConfig.deliveryToken.symbol} delivery token`} network={releaseConfig.foreign.name} value={`${formatTokenAmount(balances.test, releaseConfig.deliveryToken.decimals)} ${releaseConfig.deliveryToken.symbol}`} state={testState} detail={tokenDetail(`Mozy tops this wallet up to ${formatTokenAmount(releaseConfig.testnetFunding.deliveryTokenTarget, releaseConfig.deliveryToken.decimals)} ${releaseConfig.deliveryToken.symbol}.`, funds.claim?.assets.test)} href={testHash ? `${releaseConfig.foreign.blockExplorers.default.url}/tx/${testHash}` : undefined} hrefLabel="View TEST transfer" />
+          <ReadinessRow label="Creditcoin gas" network={releaseConfig.creditcoin.name} value={`${Number(formatEther(balances.creditcoinGas)).toLocaleString(undefined, { maximumFractionDigits: 5 })} ${releaseConfig.creditcoin.nativeCurrency.symbol}`} state={balances.creditcoinGas > 0n ? "ready" : "needed"} detail="Pays for acquisitions, reservations, and approvals." href={balances.creditcoinGas === 0n ? releaseConfig.testnetFunding.creditcoinGasFaucetUrl : undefined} hrefLabel="Open Creditcoin faucet" />
+          <ReadinessRow label={`${releaseConfig.settlementToken.symbol} settlement token`} network={releaseConfig.creditcoin.name} value={`${formatTokenAmount(balances.btkt, releaseConfig.settlementToken.decimals)} ${releaseConfig.settlementToken.symbol}`} state={btktState} detail={tokenDetail(`Mozy tops this wallet up to ${formatTokenAmount(releaseConfig.testnetFunding.settlementTokenTarget, releaseConfig.settlementToken.decimals)} ${releaseConfig.settlementToken.symbol}.`, funds.claim?.assets.btkt)} href={btktHash ? `${releaseConfig.creditcoin.blockExplorers.default.url}/tx/${btktHash}` : undefined} hrefLabel="View BTKT transfer" />
         </ul>
         {readiness.ready ? (
           <m.div initial={{ opacity: 0, y: reduceMotion ? 0 : 6 }} animate={{ opacity: 1, y: 0 }} className="mt-6 border-l-2 border-success pl-4" role="status">
             <p className="font-medium text-success">Ready to test Mozy</p>
-            <p className="mt-1 text-sm text-ink-secondary">This wallet has both demo tokens and gas on both networks.</p>
+            <p className="mt-1 text-sm text-ink-secondary">This wallet has the required testnet tokens and gas on both networks.</p>
           </m.div>
         ) : (
           <div className="mt-6">
             <button type="button" disabled={funds.pending || tokensReady} onClick={() => void funds.request()} className="min-h-11 rounded-control bg-signal px-5 text-sm font-medium text-paper-raised outline-none hover:bg-signal-strong disabled:cursor-not-allowed disabled:bg-line-emphasis focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal">
-              {funds.pending ? "Waiting for wallet or dispenser" : tokensReady ? "Demo tokens ready" : "Get demo funds"}
+              {funds.pending ? "Waiting for wallet or dispenser" : tokensReady ? "Testnet tokens ready" : "Get testnet funds"}
             </button>
             <p className="mt-3 text-xs leading-5 text-ink-secondary">You’ll sign a request only. Mozy pays the token-transfer gas, and nothing leaves your wallet.</p>
           </div>
         )}
         {funds.message ? <p className={`mt-5 border-l-2 pl-4 text-sm leading-6 ${funds.claim?.ok ? "border-success text-ink-secondary" : "border-error text-error"}`} role="status">{funds.message}</p> : null}
         {funds.claim?.retryAt ? <p className="mt-2 text-xs text-ink-tertiary">Try again after {new Date(funds.claim.retryAt).toLocaleString()}.</p> : null}
-        {!readiness.gasReady && tokensReady ? <p className="mt-5 border-l-2 border-pending pl-4 text-sm leading-6 text-ink-secondary">Your demo tokens are ready. Add the missing network gas above before starting transactions.</p> : null}
+        {!readiness.gasReady && tokensReady ? <p className="mt-5 border-l-2 border-pending pl-4 text-sm leading-6 text-ink-secondary">Your testnet tokens are ready. Add the missing network gas above before starting transactions.</p> : null}
       </section>
       <aside className="border-t border-line pt-7 lg:border-t-0 lg:border-l lg:pl-8">
         <p className="font-mono text-[10px] tracking-wide text-ink-tertiary">TESTNET CONVENIENCE</p>

@@ -30,8 +30,8 @@ export function buildTestFundsClaimStatement(claim: UnsignedTestFundsClaim) {
 }
 
 export function getTestFundsReadiness(balances: TestFundsBalances) {
-  const testReady = balances.test >= releaseConfig.demoFunding.deliveryTokenTarget;
-  const btktReady = balances.btkt >= releaseConfig.demoFunding.settlementTokenTarget;
+  const testReady = balances.test >= releaseConfig.testnetFunding.deliveryTokenTarget;
+  const btktReady = balances.btkt >= releaseConfig.testnetFunding.settlementTokenTarget;
   const gasReady = balances.sepoliaGas > 0n && balances.creditcoinGas > 0n;
   return {
     testReady,

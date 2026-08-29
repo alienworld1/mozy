@@ -5,6 +5,7 @@ import { LandingFooter } from "@/features/landing/LandingFooter";
 import { LandingHeader } from "@/features/landing/LandingHeader";
 import { MarketEntry } from "@/features/landing/MarketEntry";
 import { ReceiptMechanism } from "@/features/landing/ReceiptMechanism";
+import { ReleaseDescription } from "@/features/landing/ReleaseDescription";
 import { landingEvidence } from "@/features/landing/landing-evidence";
 
 export const metadata: Metadata = {
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
       "An ordinary foreign transfer receipt becomes an enforceable Creditcoin settlement right.",
     type: "website",
     url: "/",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "Mozy — Buy there. Pay here." }],
   },
 };
 
@@ -33,8 +35,8 @@ export default function HomePage() {
       <LandingHeader />
       <main id="main-content" tabIndex={-1} className="outline-none">
         <ReceiptMechanism />
-        <DirectWalletAct recipient={landingEvidence.recipient} />
-        <EvidenceReceipt evidence={landingEvidence} />
+        <DirectWalletAct recipient={landingEvidence?.recipient} />
+        {landingEvidence ? <EvidenceReceipt evidence={landingEvidence} /> : <ReleaseDescription />}
         <MarketEntry />
       </main>
       <LandingFooter evidence={landingEvidence} />

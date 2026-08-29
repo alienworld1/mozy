@@ -34,7 +34,7 @@ export function useTestFunds() {
     refetchInterval: (query) => {
       const current = query.state.data;
       const tokensReady = current
-        ? current.test >= releaseConfig.demoFunding.deliveryTokenTarget && current.btkt >= releaseConfig.demoFunding.settlementTokenTarget
+        ? current.test >= releaseConfig.testnetFunding.deliveryTokenTarget && current.btkt >= releaseConfig.testnetFunding.settlementTokenTarget
         : false;
       return shouldPoll && !tokensReady ? 5_000 : false;
     },
@@ -71,7 +71,7 @@ export function useTestFunds() {
       });
       const json = (await response.json()) as Partial<TestFundsResponse> & { message?: string };
       if (!json.assets || !json.status || !json.address) {
-        throw new Error(json.message ?? "Mozy couldn’t prepare the demo funds.");
+        throw new Error(json.message ?? "Mozy couldn’t prepare the testnet funds.");
       }
       const nextClaim = json as TestFundsResponse;
       setClaim(nextClaim);
@@ -83,7 +83,7 @@ export function useTestFunds() {
         ? "Signature cancelled. Nothing was submitted."
         : error instanceof Error
           ? error.message
-          : "Mozy couldn’t prepare the demo funds. Nothing was sent from your wallet.");
+          : "Mozy couldn’t prepare the testnet funds. Nothing was sent from your wallet.");
     } finally {
       setPending(false);
     }

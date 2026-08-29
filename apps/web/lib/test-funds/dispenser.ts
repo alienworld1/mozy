@@ -92,14 +92,14 @@ function createServices(): Services {
         name: "test",
         chain: releaseConfig.foreign,
         token: releaseConfig.deliveryToken.address,
-        target: releaseConfig.demoFunding.deliveryTokenTarget,
+        target: releaseConfig.testnetFunding.deliveryTokenTarget,
         privateKey: parsed.data.sepoliaKey as Hex,
       },
       btkt: {
         name: "btkt",
         chain: releaseConfig.creditcoin,
         token: releaseConfig.settlementToken.address,
-        target: releaseConfig.demoFunding.settlementTokenTarget,
+        target: releaseConfig.testnetFunding.settlementTokenTarget,
         privateKey: parsed.data.creditcoinKey as Hex,
       },
     },
@@ -165,7 +165,7 @@ async function reconcileStoredClaim(
   }
   return result("unavailable", balance, definition.target, {
     transactionHash: stored.transactionHash,
-    message: "This wallet has already received its demo allocation during the current claim window.",
+    message: "This wallet has already received its testnet allocation during the current claim window.",
   });
 }
 
@@ -296,8 +296,8 @@ export async function dispenseTestFunds(address: Address, ipAddress: string): Pr
       retryAt,
       message: "Too many requests were made from this connection. Try again after the displayed time.",
       assets: {
-        test: result("unavailable", 0n, releaseConfig.demoFunding.deliveryTokenTarget),
-        btkt: result("unavailable", 0n, releaseConfig.demoFunding.settlementTokenTarget),
+        test: result("unavailable", 0n, releaseConfig.testnetFunding.deliveryTokenTarget),
+        btkt: result("unavailable", 0n, releaseConfig.testnetFunding.settlementTokenTarget),
       },
     };
   }
@@ -324,10 +324,10 @@ export async function dispenseTestFunds(address: Address, ipAddress: string): Pr
         status: "rate_limited",
         address,
         retryAt,
-        message: "Today’s demo-fund allocation has been used. Try again after the displayed time.",
+        message: "Today’s testnet-fund allocation has been used. Try again after the displayed time.",
         assets: {
-          test: result("unavailable", 0n, releaseConfig.demoFunding.deliveryTokenTarget),
-          btkt: result("unavailable", 0n, releaseConfig.demoFunding.settlementTokenTarget),
+          test: result("unavailable", 0n, releaseConfig.testnetFunding.deliveryTokenTarget),
+          btkt: result("unavailable", 0n, releaseConfig.testnetFunding.settlementTokenTarget),
         },
       };
     }
@@ -346,9 +346,9 @@ export async function dispenseTestFunds(address: Address, ipAddress: string): Pr
     address,
     assets: { test, btkt },
     message: ready
-      ? "Demo tokens are ready."
+      ? "Testnet tokens are ready."
       : usable
         ? "At least one token is still being prepared. Review each network below."
-        : "Demo tokens are temporarily unavailable. Nothing was sent from your wallet.",
+        : "Testnet tokens are temporarily unavailable. Nothing was sent from your wallet.",
   };
 }

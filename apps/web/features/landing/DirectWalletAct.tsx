@@ -1,4 +1,4 @@
-export function DirectWalletAct({ recipient }: { recipient: string }) {
+export function DirectWalletAct({ recipient }: { recipient?: string }) {
   return (
     <section
       aria-labelledby="ordinary-wallet-title"
@@ -43,7 +43,7 @@ export function DirectWalletAct({ recipient }: { recipient: string }) {
                 <p className="font-mono text-[10px] text-ink-tertiary">TO</p>
                 <p className="mt-2 text-lg font-medium">Treasury wallet</p>
                 <p className="mt-1 truncate font-mono text-[10px] text-ink-secondary">
-                  {recipient}
+                  {recipient ?? "Buyer delivery wallet"}
                 </p>
               </div>
             </div>

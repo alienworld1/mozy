@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
 import { MozyBrand } from "@/components/brand/MozyBrand";
 import { ProductNavigation } from "@/components/shell/ProductNavigation";
+import { RouteFocus } from "@/components/shell/RouteFocus";
 import { WalletControl } from "@/components/wallet/WalletControl";
 
 export function AppFrame({ children }: { children: ReactNode }) {
   return (
     <div className="grid min-h-screen grid-cols-[1fr_auto] grid-rows-[64px_48px_1fr] bg-paper lg:grid-cols-[216px_1fr] lg:grid-rows-[88px_1fr_auto]">
+      <RouteFocus />
       <a
         href="#main-workspace"
         className="fixed left-4 top-0 z-50 -translate-y-full bg-ink px-4 py-3 text-sm font-medium text-paper focus:translate-y-4"
