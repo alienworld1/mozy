@@ -27,6 +27,13 @@ const deployment = JSON.parse(
   readFileSync(path.join(root, "artifacts/protocol/cc3-settlement.json"), "utf8"),
 ) as Deployment;
 const failures: string[] = [];
+const requiredReleasePaths = [
+  "README.md",
+  "artifacts/submission/README.md",
+  "artifacts/submission/evidence.json",
+  "artifacts/submission/accessibility-responsive-audit.md",
+  "artifacts/submission/performance-audit.md",
+] as const;
 
 function fail(message: string) {
   failures.push(message);
@@ -43,13 +50,29 @@ for (const file of requiredDocuments) {
   }
 }
 
-const markdownFiles = requiredDocuments
-  .filter((file) => existsSync(path.join(docsDirectory, file)))
-  .map((file) => ({
-    path: `docs/${file}`,
-    absolutePath: path.join(docsDirectory, file),
-    content: read(`docs/${file}`),
-  }));
+for (const relativePath of requiredReleasePaths) {
+  const target = path.join(root, relativePath);
+  if (!existsSync(target) || !statSync(target).isFile()) {
+    fail(`Missing required release file: ${relativePath}`);
+  }
+}
+
+const markdownFiles = [
+  ...requiredDocuments
+    .filter((file) => existsSync(path.join(docsDirectory, file)))
+    .map((file) => ({
+      path: `docs/${file}`,
+      absolutePath: path.join(docsDirectory, file),
+      content: read(`docs/${file}`),
+    })),
+  ...(existsSync(path.join(root, "README.md"))
+    ? [{
+        path: "README.md",
+        absolutePath: path.join(root, "README.md"),
+        content: read("README.md"),
+      }]
+    : []),
+];
 
 function headingAnchor(heading: string) {
   return heading

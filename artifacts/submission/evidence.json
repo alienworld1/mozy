@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1",
+  "releaseConfigVersion": "attestcoin-spike-cc3-sepolia-2026-08-25",
+  "deploymentArtifact": "artifacts/protocol/cc3-settlement.json",
+  "deployedAppUrl": null,
+  "repositoryUrl": "https://github.com/alienworld1/mozy",
+  "whitepaperOrDeckUrl": null,
+  "videoUrl": null,
+  "currentDeployment": {
+    "chainId": 102031,
+    "marketId": "1",
+    "contracts": {
+      "registry": "0x8b34e97cd31916F9d3A480684df3aD5B09d7B350",
+      "market": "0x4FA307e67CaB8751C4A964eeeB04e38c5655C7eE",
+      "vault": "0x1b2769736e8EdE4f892aB48486B592a7e3C9D82D",
+      "settlement": "0x6A25220617faF467f9F83cb5162CBE69BD09ea4b",
+      "verifier": "0x0000000000000000000000000000000000000FD2",
+      "chainInfo": "0x0000000000000000000000000000000000000fD3",
+      "decoder": "0x731c345d79Fb8BbDC541f9DF3b6317585F849F9f"
+    },
+    "deliveryToken": "0x0F24FD9e0524BA53d3f0A4A40350Adf5370b4A53",
+    "settlementToken": "0x914Cf96BF28b7b4921db27b264ecEd71aC91134E"
+  },
+  "successfulPath": null,
+  "rejectedPaths": [
+    {
+      "kind": "wrong-token",
+      "method": "deterministic contract test",
+      "evidencePath": "contracts/test/Settlement.t.sol"
+    },
+    {
+      "kind": "wrong-sender-or-recipient",
+      "method": "deterministic contract test",
+      "evidencePath": "contracts/test/Settlement.t.sol"
+    },
+    {
+      "kind": "replay",
+      "method": "deterministic contract test",
+      "evidencePath": "contracts/test/Settlement.t.sol"
+    }
+  ],
+  "checks": {
+    "offline": "pass",
+    "liveEvidence": "fail",
+    "attestcoinEvidence": "source transaction not visible through configured RPC",
+    "protocolEvidence": "current deployment mismatch",
+    "checkedAt": "2026-08-29T15:44:57.000Z"
+  },
+  "knownLimitations": "docs/security.md"
+}

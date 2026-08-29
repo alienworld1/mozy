@@ -141,7 +141,7 @@ export const releaseConfig = Object.freeze({
     symbol: attestcoinEnvironment.settlementToken.symbol,
     decimals: attestcoinEnvironment.settlementToken.decimals,
   },
-  demoFunding: {
+  testnetFunding: {
     deliveryTokenTarget:
       100n * 10n ** BigInt(attestcoinEnvironment.deliveryToken.decimals),
     settlementTokenTarget:
