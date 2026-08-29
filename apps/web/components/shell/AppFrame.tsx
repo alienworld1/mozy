@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
+import { MozyBrand } from "@/components/brand/MozyBrand";
 import { ProductNavigation } from "@/components/shell/ProductNavigation";
 import { WalletControl } from "@/components/wallet/WalletControl";
 
@@ -14,13 +14,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
       </a>
 
       <div className="flex items-center border-b border-line px-4 lg:border-r lg:border-b-0 lg:px-6">
-        <Link
-          href="/"
-          className="inline-flex min-h-11 items-center text-lg font-medium tracking-[-0.03em] outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
-          aria-label="Mozy home"
-        >
-          Mozy
-        </Link>
+        <MozyBrand compact />
       </div>
 
       <div className="relative z-30 flex items-center justify-end border-b border-line px-4 lg:col-start-1 lg:row-start-3 lg:border-r lg:border-b-0 lg:px-4 lg:py-5">

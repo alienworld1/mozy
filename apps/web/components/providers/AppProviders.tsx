@@ -1,7 +1,6 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { domAnimation, LazyMotion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import { WagmiProvider } from "wagmi";
 import { WalletRestoreProvider } from "@/components/providers/WalletRestoreProvider";
@@ -22,12 +21,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
   );
 
   return (
-    <LazyMotion features={domAnimation} strict>
-      <WagmiProvider config={wagmiConfig} reconnectOnMount={false}>
-        <QueryClientProvider client={queryClient}>
-          <WalletRestoreProvider>{children}</WalletRestoreProvider>
-        </QueryClientProvider>
-      </WagmiProvider>
-    </LazyMotion>
+    <WagmiProvider config={wagmiConfig} reconnectOnMount={false}>
+      <QueryClientProvider client={queryClient}>
+        <WalletRestoreProvider>{children}</WalletRestoreProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }

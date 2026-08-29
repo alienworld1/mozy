@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
-import { AppProviders } from "@/components/providers/AppProviders";
+import { MotionProvider } from "@/components/providers/MotionProvider";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -14,10 +14,20 @@ const ibmPlexMono = IBM_Plex_Mono({
   weight: ["400", "500"],
 });
 
+const metadataOrigin =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "http://localhost:3000");
+
 export const metadata: Metadata = {
-  title: "Mozy — Direct asset acquisition",
+  metadataBase: new URL(metadataOrigin),
+  title: {
+    default: "Mozy — Buy there. Pay here.",
+    template: "%s · Mozy",
+  },
   description:
-    "Fund acquisitions on Creditcoin and receive verified delivery on supported networks.",
+    "Fund an acquisition on Creditcoin, receive assets directly on Ethereum Sepolia, and release payment after verified delivery.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -27,7 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${spaceGrotesk.variable} ${ibmPlexMono.variable} antialiased`}
     >
       <body>
-        <AppProviders>{children}</AppProviders>
+        <MotionProvider>{children}</MotionProvider>
       </body>
     </html>
   );
