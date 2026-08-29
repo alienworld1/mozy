@@ -1,0 +1,30 @@
+{
+  "name": "@mozy/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts"
+  },
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "migrate": "drizzle-kit migrate",
+    "test": "tsx --test src/**/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dotenv": "17.4.2",
+    "drizzle-orm": "^0.44.5",
+    "postgres": "^3.4.7",
+    "server-only": "^0.0.1",
+    "viem": "^2.47.6",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "drizzle-kit": "^0.31.4",
+    "tsx": "4.22.4",
+    "typescript": "5.9.3"
+  }
+}

@@ -38,7 +38,8 @@ const browserEnvironmentSchema = z.object({
 });
 
 function configurationError(cause: unknown): never {
-  const detail = cause instanceof Error ? cause.message : "Unknown validation error";
+  const detail =
+    cause instanceof Error ? cause.message : "Unknown validation error";
   throw new Error(`Mozy release configuration is invalid: ${detail}`);
 }
 
@@ -48,8 +49,11 @@ let browserEnvironment: z.infer<typeof browserEnvironmentSchema>;
 try {
   deployment = deploymentSchema.parse(settlementDeployment);
   browserEnvironment = browserEnvironmentSchema.parse({
-    creditcoinRpcUrl: process.env.NEXT_PUBLIC_CREDITCOIN_RPC_URL,
-    foreignRpcUrl: process.env.NEXT_PUBLIC_FOREIGN_RPC_URL,
+    creditcoinRpcUrl:
+      process.env.CREDITCOIN_RPC_URL ??
+      process.env.NEXT_PUBLIC_CREDITCOIN_RPC_URL,
+    foreignRpcUrl:
+      process.env.FOREIGN_RPC_URL ?? process.env.NEXT_PUBLIC_FOREIGN_RPC_URL,
   });
 } catch (error) {
   configurationError(error);
@@ -59,7 +63,9 @@ if (
   deployment.environmentConfigVersion !== attestcoinEnvironment.configVersion ||
   deployment.chainId !== attestcoinEnvironment.creditcoin.chainId
 ) {
-  configurationError(new Error("environment and deployment versions do not match"));
+  configurationError(
+    new Error("environment and deployment versions do not match"),
+  );
 }
 
 export const creditcoinChain = defineChain({
@@ -111,6 +117,7 @@ export const releaseConfig = Object.freeze({
   foreign: {
     ...deliveryChain,
     role: "Delivery network" as const,
+    sourceChainKey: BigInt(attestcoinEnvironment.foreign.sourceChainKey),
   },
   deliveryToken: {
     address: address.parse(attestcoinEnvironment.deliveryToken.address),
@@ -123,10 +130,14 @@ export const releaseConfig = Object.freeze({
     decimals: attestcoinEnvironment.settlementToken.decimals,
   },
   demoFunding: {
-    deliveryTokenTarget: 100n * 10n ** BigInt(attestcoinEnvironment.deliveryToken.decimals),
-    settlementTokenTarget: 100n * 10n ** BigInt(attestcoinEnvironment.settlementToken.decimals),
-    sepoliaGasFaucetUrl: "https://cloud.google.com/application/web3/faucet/ethereum/sepolia",
-    creditcoinGasFaucetUrl: "https://docs.creditcoin.org/wallets/using-testnet-faucet",
+    deliveryTokenTarget:
+      100n * 10n ** BigInt(attestcoinEnvironment.deliveryToken.decimals),
+    settlementTokenTarget:
+      100n * 10n ** BigInt(attestcoinEnvironment.settlementToken.decimals),
+    sepoliaGasFaucetUrl:
+      "https://cloud.google.com/application/web3/faucet/ethereum/sepolia",
+    creditcoinGasFaucetUrl:
+      "https://docs.creditcoin.org/wallets/using-testnet-faucet",
   },
   contracts: deployment.contracts,
   marketId: deployment.marketId,

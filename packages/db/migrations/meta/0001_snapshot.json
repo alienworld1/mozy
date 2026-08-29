@@ -1,0 +1,1276 @@
+{
+  "id": "4e8243c1-bfad-4f8f-a67c-b7bd88a38e57",
+  "prevId": "61ae8b7b-89a9-48a6-b4d1-8d8575259ddb",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "mozy.foreign_transactions": {
+      "name": "foreign_transactions",
+      "schema": "mozy",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "config_version": {
+          "name": "config_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reservation_id": {
+          "name": "reservation_id",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "foreign_chain_id": {
+          "name": "foreign_chain_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_chain_key": {
+          "name": "source_chain_key",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "transaction_hash": {
+          "name": "transaction_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "solver": {
+          "name": "solver",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "candidate_source",
+          "typeSchema": "mozy",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "replaces_transaction_id": {
+          "name": "replaces_transaction_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preferred_at": {
+          "name": "preferred_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "superseded_at": {
+          "name": "superseded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "observed_block_number": {
+          "name": "observed_block_number",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "observed_block_hash": {
+          "name": "observed_block_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transaction_index": {
+          "name": "transaction_index",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "receipt_status": {
+          "name": "receipt_status",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transaction_to": {
+          "name": "transaction_to",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transfer_from": {
+          "name": "transfer_from",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transfer_to": {
+          "name": "transfer_to",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transfer_amount": {
+          "name": "transfer_amount",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transfer_log_index": {
+          "name": "transfer_log_index",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "semantic_status": {
+          "name": "semantic_status",
+          "type": "semantic_status",
+          "typeSchema": "mozy",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "rejection_class": {
+          "name": "rejection_class",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rejection_detail_safe": {
+          "name": "rejection_detail_safe",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "registered_at": {
+          "name": "registered_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "observed_at": {
+          "name": "observed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "foreign_transactions_reservation_idx": {
+          "name": "foreign_transactions_reservation_idx",
+          "columns": [
+            {
+              "expression": "config_version",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "reservation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "foreign_transactions_replaces_idx": {
+          "name": "foreign_transactions_replaces_idx",
+          "columns": [
+            {
+              "expression": "replaces_transaction_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "foreign_transactions_candidate_uq": {
+          "name": "foreign_transactions_candidate_uq",
+          "nullsNotDistinct": false,
+          "columns": [
+            "config_version",
+            "reservation_id",
+            "transaction_hash"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "foreign_transactions_hash_shape": {
+          "name": "foreign_transactions_hash_shape",
+          "value": "\"mozy\".\"foreign_transactions\".\"transaction_hash\" ~ '^0x[0-9a-f]{64}$'"
+        },
+        "foreign_transactions_solver_shape": {
+          "name": "foreign_transactions_solver_shape",
+          "value": "\"mozy\".\"foreign_transactions\".\"solver\" ~ '^0x[0-9a-f]{40}$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "mozy.mandates": {
+      "name": "mandates",
+      "schema": "mozy",
+      "columns": {
+        "config_version": {
+          "name": "config_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mandate_id": {
+          "name": "mandate_id",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "market_id": {
+          "name": "market_id",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "buyer": {
+          "name": "buyer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "delivery_wallet": {
+          "name": "delivery_wallet",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_amount": {
+          "name": "target_amount",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "acquired_amount": {
+          "name": "acquired_amount",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reserved_amount": {
+          "name": "reserved_amount",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pricing_mode": {
+          "name": "pricing_mode",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_price": {
+          "name": "start_price",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_price": {
+          "name": "end_price",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "required_funding": {
+          "name": "required_funding",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "settlement_token": {
+          "name": "settlement_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "funded": {
+          "name": "funded",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "spent": {
+          "name": "spent",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reserved_budget": {
+          "name": "reserved_budget",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "free_budget": {
+          "name": "free_budget",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refunded": {
+          "name": "refunded",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mandate_expiry": {
+          "name": "mandate_expiry",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reservation_duration": {
+          "name": "reservation_duration",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at_chain": {
+          "name": "created_at_chain",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_canonical_block": {
+          "name": "last_canonical_block",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "mandates_config_version_mandate_id_pk": {
+          "name": "mandates_config_version_mandate_id_pk",
+          "columns": [
+            "config_version",
+            "mandate_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "mozy.markets": {
+      "name": "markets",
+      "schema": "mozy",
+      "columns": {
+        "config_version": {
+          "name": "config_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "market_id": {
+          "name": "market_id",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "creditcoin_chain_id": {
+          "name": "creditcoin_chain_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_chain_key": {
+          "name": "source_chain_key",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "foreign_chain_id": {
+          "name": "foreign_chain_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "foreign_token": {
+          "name": "foreign_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "foreign_token_decimals": {
+          "name": "foreign_token_decimals",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "settlement_token": {
+          "name": "settlement_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "settlement_token_decimals": {
+          "name": "settlement_token_decimals",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_canonical_block": {
+          "name": "last_canonical_block",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "markets_config_version_market_id_pk": {
+          "name": "markets_config_version_market_id_pk",
+          "columns": [
+            "config_version",
+            "market_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "mozy.proof_jobs": {
+      "name": "proof_jobs",
+      "schema": "mozy",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "foreign_transaction_id": {
+          "name": "foreign_transaction_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reservation_id": {
+          "name": "reservation_id",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "foreign_tx_hash": {
+          "name": "foreign_tx_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_chain_key": {
+          "name": "source_chain_key",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "proof_job_status",
+          "typeSchema": "mozy",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'DETECTED'"
+        },
+        "resume_status": {
+          "name": "resume_status",
+          "type": "proof_job_status",
+          "typeSchema": "mozy",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "attempt_count": {
+          "name": "attempt_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "next_attempt_at": {
+          "name": "next_attempt_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "lease_owner": {
+          "name": "lease_owner",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lease_expires_at": {
+          "name": "lease_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_error_class": {
+          "name": "last_error_class",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_error_detail_safe": {
+          "name": "last_error_detail_safe",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "proof_version": {
+          "name": "proof_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "proof_payload": {
+          "name": "proof_payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "proof_checksum": {
+          "name": "proof_checksum",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "creditcoin_settlement_tx_hash": {
+          "name": "creditcoin_settlement_tx_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "confirmed_at": {
+          "name": "confirmed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "proof_jobs_due_idx": {
+          "name": "proof_jobs_due_idx",
+          "columns": [
+            {
+              "expression": "next_attempt_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"mozy\".\"proof_jobs\".\"status\" NOT IN ('CONFIRMED', 'TERMINAL_REJECTED')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "proof_jobs_lease_idx": {
+          "name": "proof_jobs_lease_idx",
+          "columns": [
+            {
+              "expression": "lease_expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "proof_jobs_foreign_transaction_id_foreign_transactions_id_fk": {
+          "name": "proof_jobs_foreign_transaction_id_foreign_transactions_id_fk",
+          "tableFrom": "proof_jobs",
+          "tableTo": "foreign_transactions",
+          "schemaTo": "mozy",
+          "columnsFrom": [
+            "foreign_transaction_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "proof_jobs_candidate_uq": {
+          "name": "proof_jobs_candidate_uq",
+          "nullsNotDistinct": false,
+          "columns": [
+            "foreign_transaction_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "proof_jobs_attempt_nonnegative": {
+          "name": "proof_jobs_attempt_nonnegative",
+          "value": "\"mozy\".\"proof_jobs\".\"attempt_count\" >= 0"
+        },
+        "proof_jobs_hash_shape": {
+          "name": "proof_jobs_hash_shape",
+          "value": "\"mozy\".\"proof_jobs\".\"foreign_tx_hash\" ~ '^0x[0-9a-f]{64}$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "mozy.protocol_events": {
+      "name": "protocol_events",
+      "schema": "mozy",
+      "columns": {
+        "chain_id": {
+          "name": "chain_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contract_address": {
+          "name": "contract_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "block_number": {
+          "name": "block_number",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "block_hash": {
+          "name": "block_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "transaction_hash": {
+          "name": "transaction_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "transaction_index": {
+          "name": "transaction_index",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "log_index": {
+          "name": "log_index",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_name": {
+          "name": "event_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mandate_id": {
+          "name": "mandate_id",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reservation_id": {
+          "name": "reservation_id",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "payload": {
+          "name": "payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "confirmed_at_block": {
+          "name": "confirmed_at_block",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "orphaned_at": {
+          "name": "orphaned_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "projected_at": {
+          "name": "projected_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "protocol_events_entity_idx": {
+          "name": "protocol_events_entity_idx",
+          "columns": [
+            {
+              "expression": "reservation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mandate_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "protocol_events_chain_id_transaction_hash_log_index_pk": {
+          "name": "protocol_events_chain_id_transaction_hash_log_index_pk",
+          "columns": [
+            "chain_id",
+            "transaction_hash",
+            "log_index"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "mozy.reservations": {
+      "name": "reservations",
+      "schema": "mozy",
+      "columns": {
+        "config_version": {
+          "name": "config_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reservation_id": {
+          "name": "reservation_id",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mandate_id": {
+          "name": "mandate_id",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "solver": {
+          "name": "solver",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "locked_payout": {
+          "name": "locked_payout",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bond_amount": {
+          "name": "bond_amount",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at_chain": {
+          "name": "created_at_chain",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "delivery_deadline": {
+          "name": "delivery_deadline",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_start_height": {
+          "name": "source_start_height",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_end_height": {
+          "name": "source_end_height",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expiry_eligible_height": {
+          "name": "expiry_eligible_height",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_canonical_block": {
+          "name": "last_canonical_block",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "reservations_solver_status_idx": {
+          "name": "reservations_solver_status_idx",
+          "columns": [
+            {
+              "expression": "config_version",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "solver",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "reservations_mandate_status_idx": {
+          "name": "reservations_mandate_status_idx",
+          "columns": [
+            {
+              "expression": "config_version",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mandate_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "reservations_config_version_reservation_id_pk": {
+          "name": "reservations_config_version_reservation_id_pk",
+          "columns": [
+            "config_version",
+            "reservation_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "mozy.settlement_receipts": {
+      "name": "settlement_receipts",
+      "schema": "mozy",
+      "columns": {
+        "config_version": {
+          "name": "config_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reservation_id": {
+          "name": "reservation_id",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mandate_id": {
+          "name": "mandate_id",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "foreign_transaction_id": {
+          "name": "foreign_transaction_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "foreign_tx_hash": {
+          "name": "foreign_tx_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_chain_key": {
+          "name": "source_chain_key",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "block_height": {
+          "name": "block_height",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "transaction_index": {
+          "name": "transaction_index",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "transfer_log_index": {
+          "name": "transfer_log_index",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "replay_identity": {
+          "name": "replay_identity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "solver": {
+          "name": "solver",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipient": {
+          "name": "recipient",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "relayer": {
+          "name": "relayer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "delivered_amount": {
+          "name": "delivered_amount",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "credited_amount": {
+          "name": "credited_amount",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "locked_payout": {
+          "name": "locked_payout",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "returned_bond": {
+          "name": "returned_bond",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "creditcoin_settlement_tx_hash": {
+          "name": "creditcoin_settlement_tx_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "settlement_block_number": {
+          "name": "settlement_block_number",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "projected_at": {
+          "name": "projected_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "settlement_receipts_config_version_reservation_id_pk": {
+          "name": "settlement_receipts_config_version_reservation_id_pk",
+          "columns": [
+            "config_version",
+            "reservation_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "mozy.sync_cursors": {
+      "name": "sync_cursors",
+      "schema": "mozy",
+      "columns": {
+        "config_version": {
+          "name": "config_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stream_key": {
+          "name": "stream_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chain_id": {
+          "name": "chain_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contract_address": {
+          "name": "contract_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "next_block": {
+          "name": "next_block",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_safe_block": {
+          "name": "last_safe_block",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_safe_block_hash": {
+          "name": "last_safe_block_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "heartbeat_at": {
+          "name": "heartbeat_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "sync_cursors_config_version_stream_key_pk": {
+          "name": "sync_cursors_config_version_stream_key_pk",
+          "columns": [
+            "config_version",
+            "stream_key"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "mozy.candidate_source": {
+      "name": "candidate_source",
+      "schema": "mozy",
+      "values": [
+        "composer",
+        "external"
+      ]
+    },
+    "mozy.proof_job_status": {
+      "name": "proof_job_status",
+      "schema": "mozy",
+      "values": [
+        "DETECTED",
+        "WAITING_SOURCE_CONFIRMATION",
+        "WAITING_ATTESTATION",
+        "PROOF_READY",
+        "SUBMITTING",
+        "CONFIRMED",
+        "RETRYABLE",
+        "TERMINAL_REJECTED"
+      ]
+    },
+    "mozy.semantic_status": {
+      "name": "semantic_status",
+      "schema": "mozy",
+      "values": [
+        "pending",
+        "accepted",
+        "rejected"
+      ]
+    }
+  },
+  "schemas": {
+    "mozy": "mozy"
+  },
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
