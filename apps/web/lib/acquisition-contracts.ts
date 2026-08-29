@@ -48,3 +48,7 @@ export const faucetErc20Abi = parseAbi([
   "function balanceOf(address account) view returns (uint256)",
   "function transfer(address recipient,uint256 amount) returns (bool)",
 ]);
+
+export const settlementAbi = parseAbi([
+  "function receiptReservation(bytes32 replayIdentity) view returns (uint256)",
+]);
