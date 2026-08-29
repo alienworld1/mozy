@@ -1,14 +1,14 @@
-import { EmptyState } from "@/components/states/EmptyState";
 import { PageHeader } from "@/components/shell/PageHeader";
+import { ActivityWorkspace } from "@/features/activity/ActivityWorkspace";
 
 export default function ActivityPage() {
   return (
     <>
       <PageHeader
         title="Activity"
-        description="Follow real acquisition, delivery, verification, and settlement events."
+        description="Follow confirmed acquisition, delivery, verification, and settlement activity."
       />
-      <EmptyState message="Protocol activity will appear here." />
+      <ActivityWorkspace />
     </>
   );
 }
