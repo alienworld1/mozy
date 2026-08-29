@@ -23,6 +23,7 @@ import { useVerification } from "./useVerification";
 import { VerificationSequence } from "./VerificationSequence";
 import { DurableCandidateHistory } from "./DurableCandidateHistory";
 import { needsCanonicalReservationRefresh } from "./verification";
+import { useReceiptAvailability } from "@/features/receipts/useReceiptAvailability";
 
 export function ReservationWorkspaceContent({
   data,
@@ -49,6 +50,9 @@ export function ReservationWorkspaceContent({
   );
   const registration = useCandidateRegistration(data.reservation);
   const verification = useVerification(data.reservation.id.toString());
+  const receiptAvailability = useReceiptAvailability(
+    data.reservation.status === 2 ? [data.reservation.id.toString()] : [],
+  );
   const reconcileDurableCandidates = candidates.reconcileDurable;
   const delivery = useDeliveryTransaction(data);
   const refreshDeliveryBalance = delivery.refreshBalance;
@@ -432,6 +436,18 @@ export function ReservationWorkspaceContent({
             <p className="mt-6 border-l-2 border-line-strong pl-4 text-sm leading-6 text-ink-secondary">
               {disabledReason}
             </p>
+          ) : null}
+          {data.reservation.status === 2 ? (
+            receiptAvailability.data?.has(data.reservation.id.toString()) ? (
+              <Link
+                href={`/activity/receipts/${data.reservation.id.toString()}`}
+                className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-control bg-signal px-4 text-sm font-medium text-paper-raised outline-none hover:bg-signal-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
+              >
+                View delivery receipt
+              </Link>
+            ) : (
+              <p className="mt-6 border-l-2 border-pending pl-4 text-sm text-ink-secondary">Receipt is being prepared.</p>
+            )
           ) : null}
           <div className="mt-6">
             <TransactionState

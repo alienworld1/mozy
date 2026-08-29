@@ -9,6 +9,7 @@ import { StructuralSkeleton } from "@/components/states/StructuralSkeleton";
 import { useHydrated } from "@/hooks/useHydrated";
 import { SolverReservationScheduleRow } from "./SolverReservationScheduleRow";
 import { useSolverReservations } from "./useSolverReservations";
+import { useReceiptAvailability } from "@/features/receipts/useReceiptAvailability";
 
 export function SolverSchedule() {
   const hydrated = useHydrated();
@@ -17,6 +18,8 @@ export function SolverSchedule() {
     ? getAddress(connection.address)
     : undefined;
   const query = useSolverReservations(solver);
+  const settledIds = query.data?.filter((row) => row.reservation.status === 2).map((row) => row.reservation.id.toString()) ?? [];
+  const receiptAvailability = useReceiptAvailability(settledIds);
   if (!hydrated || connection.status === "reconnecting")
     return <StructuralSkeleton />;
   if (!solver)
@@ -65,6 +68,8 @@ export function SolverSchedule() {
               <SolverReservationScheduleRow
                 key={row.reservation.id.toString()}
                 row={row}
+                receiptAvailable={receiptAvailability.data?.has(row.reservation.id.toString()) ?? false}
+                receiptAvailabilityLoading={receiptAvailability.isLoading}
               />
             ))}
           </ul>
@@ -80,6 +85,8 @@ export function SolverSchedule() {
               <SolverReservationScheduleRow
                 key={row.reservation.id.toString()}
                 row={row}
+                receiptAvailable={receiptAvailability.data?.has(row.reservation.id.toString()) ?? false}
+                receiptAvailabilityLoading={receiptAvailability.isLoading}
               />
             ))}
           </ul>

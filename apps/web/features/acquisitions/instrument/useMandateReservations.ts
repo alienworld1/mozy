@@ -76,9 +76,7 @@ export function useMandateReservations({
         })));
         reservations.push(...values as Reservation[]);
       }
-      return reservations.filter((reservation) =>
-        reservation.mandateId === mandateId && reservation.status === 0
-      );
+      return reservations.filter((reservation) => reservation.mandateId === mandateId);
     },
   });
 }

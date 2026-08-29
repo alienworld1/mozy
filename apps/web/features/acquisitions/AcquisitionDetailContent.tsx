@@ -9,6 +9,7 @@ import { TermsSchedule } from "./TermsSchedule";
 import type { Acquisition, InstrumentModel, Reservation } from "./types";
 import { AcquisitionInstrument } from "./instrument/AcquisitionInstrument";
 import { useFillMeasurement } from "./instrument/useFillMeasurement";
+import { SettledFillSchedule } from "./SettledFillSchedule";
 
 const noReservations: Reservation[] = [];
 
@@ -33,9 +34,10 @@ export function AcquisitionDetailContent({
 }) {
   const { mandate, account } = acquisition;
   const measurement = useFillMeasurement({ mandate, model, accountingVerified, onAcquisitionRefresh: onRefresh });
-  const reservationSum = useMemo(() => (reservationDetails ?? noReservations).reduce((sum, reservation) => sum + reservation.quantity, 0n), [reservationDetails]);
+  const activeReservationDetails = useMemo(() => (reservationDetails ?? noReservations).filter((reservation) => reservation.status === 0), [reservationDetails]);
+  const reservationSum = useMemo(() => activeReservationDetails.reduce((sum, reservation) => sum + reservation.quantity, 0n), [activeReservationDetails]);
   const reservationDetailsReconciled = !reservationDetailsLoading && !reservationDetailsError && reservationDetails !== undefined && reservationSum === model.reservedQuantity;
-  const reservations = reservationDetailsReconciled ? reservationDetails ?? noReservations : noReservations;
+  const reservations = reservationDetailsReconciled ? activeReservationDetails : noReservations;
   const reservationDetailsFailed = reservationDetailsError || (!reservationDetailsLoading && reservationDetails !== undefined && !reservationDetailsReconciled);
 
   return <>
@@ -58,6 +60,7 @@ export function AcquisitionDetailContent({
       <BudgetSchedule mandate={mandate} account={account} />
     </div>
     <TermsSchedule mandate={mandate} />
+    <SettledFillSchedule reservations={reservationDetails ?? noReservations} />
     {!accountingVerified ? <p className="mt-8 border-l-2 border-error pl-4 text-sm text-error">This acquisition’s accounting could not be verified. Refresh before continuing.</p> : null}
     <LifecycleControls acquisition={acquisition} accountingVerified={accountingVerified} onRefresh={onRefresh} />
     <TechnicalDisclosure mandate={mandate} />

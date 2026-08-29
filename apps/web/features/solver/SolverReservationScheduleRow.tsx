@@ -14,8 +14,12 @@ import type { SolverReservationRow } from "./useSolverReservations";
 
 export function SolverReservationScheduleRow({
   row,
+  receiptAvailable,
+  receiptAvailabilityLoading,
 }: {
   row: SolverReservationRow;
+  receiptAvailable: boolean;
+  receiptAvailabilityLoading: boolean;
 }) {
   const { reservation } = row;
   const candidates = useCandidateRecords(
@@ -99,12 +103,15 @@ export function SolverReservationScheduleRow({
             </span>
           ))}
       </div>
-      <Link
-        href={`/solver/reservations/${reservation.id.toString()}`}
-        className="inline-flex min-h-11 items-center justify-center rounded-control border border-line-strong px-4 text-sm font-medium outline-none hover:bg-wash focus-visible:outline-2 focus-visible:outline-signal"
-      >
-        {reservation.status === 0 ? "Continue delivery" : "Inspect reservation"}
-      </Link>
+      <div>
+        <Link
+          href={receiptAvailable ? `/activity/receipts/${reservation.id.toString()}` : `/solver/reservations/${reservation.id.toString()}`}
+          className="inline-flex min-h-11 items-center justify-center rounded-control border border-line-strong px-4 text-sm font-medium outline-none hover:bg-wash focus-visible:outline-2 focus-visible:outline-signal"
+        >
+          {receiptAvailable ? "View receipt" : reservation.status === 0 ? "Continue delivery" : "Inspect reservation"}
+        </Link>
+        {reservation.status === 2 && !receiptAvailable ? <span className="mt-1 block text-[10px] text-ink-tertiary">{receiptAvailabilityLoading ? "Checking receipt…" : "Receipt is being prepared"}</span> : null}
+      </div>
     </li>
   );
 }
