@@ -227,6 +227,21 @@ export async function POST(
         "replacement_not_found",
         "The transaction you are replacing is not registered for this reservation.",
       );
+    if (error instanceof Error && error.message === "replacement_not_safe")
+      return failure(
+        409,
+        "replacement_not_safe",
+        "This reservation is not accepting another delivery transaction.",
+      );
+    if (
+      error instanceof Error &&
+      error.message === "settlement_outcome_uncertain"
+    )
+      return failure(
+        409,
+        "settlement_outcome_uncertain",
+        "Settlement status is being checked. Do not submit another delivery.",
+      );
     return failure(
       503,
       "database_unavailable",

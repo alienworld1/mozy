@@ -27,6 +27,7 @@ const deploymentSchema = z.object({
     market: address,
     vault: address,
     settlement: address,
+    chainInfo: address,
   }),
   marketId: z.string().regex(/^\d+$/),
   deploymentBlock: z.string().regex(/^\d+$/),

@@ -1,4 +1,5 @@
 import { AttestcoinError } from "../../../scripts/attestcoin/errors.js";
+import { publicReason } from "@mozy/db";
 
 export type JobError = {
   kind: "waiting_source" | "waiting_attestation" | "retryable" | "terminal";
@@ -27,10 +28,20 @@ export function classifyJobError(error: unknown): JobError {
         safeDetail:
           "Delivery is unchanged. Verification will resume when proof infrastructure is available.",
       };
+    if (
+      error.errorClass === "proof_validation_error" ||
+      error.errorClass === "cryptographic_verification_error"
+    )
+      return {
+        kind: "terminal",
+        errorClass: "attestcoin_verification_failed",
+        safeDetail:
+          "Delivery could not be verified from the submitted transaction.",
+      };
     return {
       kind: "terminal",
-      errorClass: error.errorClass,
-      safeDetail: safeSemanticMessage(error.message),
+      errorClass: publicReason(error.message).reasonClass,
+      safeDetail: publicReason(error.message).message,
     };
   }
   const message = error instanceof Error ? error.message : "";
@@ -41,8 +52,8 @@ export function classifyJobError(error: unknown): JobError {
   ) {
     return {
       kind: "terminal",
-      errorClass: "canonical_incompatibility",
-      safeDetail: safeSemanticMessage(message),
+      errorClass: publicReason(message).reasonClass,
+      safeDetail: publicReason(message).message,
     };
   }
   return {
@@ -51,20 +62,4 @@ export function classifyJobError(error: unknown): JobError {
     safeDetail:
       "Delivery is unchanged. Verification will resume automatically.",
   };
-}
-
-function safeSemanticMessage(message: string) {
-  if (/did not succeed/i.test(message))
-    return "Delivery not accepted. The transaction did not succeed.";
-  if (/token contract|approved token/i.test(message))
-    return "Delivery not accepted. Wrong token contract.";
-  if (/sender/i.test(message))
-    return "Delivery not accepted. The transfer was not sent by the reserved solver.";
-  if (/recipient/i.test(message))
-    return "Delivery not accepted. Wrong delivery wallet.";
-  if (/below|required delivery amount/i.test(message))
-    return "Delivery not accepted. The transferred amount is below the reserved amount.";
-  if (/height|window|timing/i.test(message))
-    return "Delivery not accepted. The transfer was outside this reservation's delivery window.";
-  return "Delivery not accepted. We couldn't identify one qualifying standard transfer.";
 }

@@ -146,6 +146,43 @@ export async function registerCandidate(
       return { created: false, candidate: existing, job: currentJob! };
     }
 
+    const current = await tx.query.foreignTransactions.findFirst({
+      where: and(
+        eq(foreignTransactions.configVersion, input.configVersion),
+        eq(foreignTransactions.reservationId, input.reservationId),
+        isNull(foreignTransactions.supersededAt),
+      ),
+    });
+    if (
+      current &&
+      (!input.replacesHash ||
+        current.transactionHash !== input.replacesHash.toLowerCase())
+    )
+      throw new Error("replacement_not_safe");
+
+    const unresolvedSettlement = await tx
+      .select({ id: proofJobs.id })
+      .from(proofJobs)
+      .innerJoin(
+        foreignTransactions,
+        eq(proofJobs.foreignTransactionId, foreignTransactions.id),
+      )
+      .where(
+        and(
+          eq(foreignTransactions.configVersion, input.configVersion),
+          eq(foreignTransactions.reservationId, input.reservationId),
+          or(
+            eq(proofJobs.status, "SUBMITTING"),
+            and(
+              eq(proofJobs.status, "RETRYABLE"),
+              eq(proofJobs.resumeStatus, "SUBMITTING"),
+            ),
+          ),
+        ),
+      )
+      .limit(1);
+    if (unresolvedSettlement.length) throw new Error("settlement_outcome_uncertain");
+
     let replaced: typeof foreignTransactions.$inferSelect | undefined;
     if (input.replacesHash) {
       replaced = await tx.query.foreignTransactions.findFirst({
@@ -157,9 +194,18 @@ export async function registerCandidate(
             foreignTransactions.transactionHash,
             input.replacesHash.toLowerCase(),
           ),
+          isNull(foreignTransactions.supersededAt),
         ),
       });
       if (!replaced) throw new Error("replacement_not_found");
+      const replacedJob = await tx.query.proofJobs.findFirst({
+        where: eq(proofJobs.foreignTransactionId, replaced.id),
+      });
+      if (
+        replaced.semanticStatus !== "rejected" ||
+        replacedJob?.status !== "TERMINAL_REJECTED"
+      )
+        throw new Error("replacement_not_safe");
     }
     const registeredAt = new Date();
     await tx

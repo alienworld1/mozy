@@ -11,6 +11,21 @@ export const verificationPhaseSchema = z.enum([
 ]);
 export type VerificationPhase = z.infer<typeof verificationPhaseSchema>;
 
+export const publicReasonClassSchema = z.enum([
+  "source_transaction_failed",
+  "wrong_token",
+  "wrong_sender",
+  "wrong_recipient",
+  "underdelivery",
+  "ambiguous_or_nonstandard_transfer",
+  "invalid_delivery_timing",
+  "attestcoin_verification_failed",
+  "reservation_no_longer_active",
+  "receipt_already_consumed",
+  "reservation_binding_mismatch",
+  "candidate_not_accepted",
+]);
+
 const verificationCandidateSchema = z.object({
   id: z.string(),
   transactionHash: z.string().regex(/^0x[0-9a-f]{64}$/),
@@ -18,11 +33,20 @@ const verificationCandidateSchema = z.object({
   registeredAt: z.string().datetime(),
   observedAt: z.string().datetime().nullable(),
   semanticStatus: z.enum(["pending", "accepted", "rejected"]),
-  rejectionClass: z.string().nullable(),
-  rejectionMessage: z.string().nullable(),
+  reasonClass: publicReasonClassSchema.nullable(),
+  reasonMessage: z.string().nullable(),
+  affectedObject: z.enum(["candidate", "reservation", "infrastructure"]),
+  reservationUnchanged: z.boolean(),
   replacesCandidateId: z.string().nullable(),
   phase: verificationPhaseSchema,
-  nextAction: z.enum(["waiting", "automatic_retry", "none"]),
+  nextAction: z.enum([
+    "wait",
+    "automatic_retry",
+    "replace_candidate",
+    "inspect_settlement",
+    "release_expired",
+    "none",
+  ]),
   settlementTransactionHash: z.string().nullable(),
   updatedAt: z.string().datetime(),
   statusMessage: z.string().nullable(),
@@ -37,7 +61,9 @@ export const verificationResponseSchema = z.object({
     "Settled",
     "Unknown",
   ]),
+  canonicalFreshness: z.enum(["fresh", "unavailable"]),
   projectionFreshness: z.enum(["fresh", "refreshing", "degraded"]),
+  verificationAvailability: z.enum(["normal", "delayed", "unavailable"]),
   candidates: z.array(verificationCandidateSchema),
 });
 export type VerificationResponse = z.infer<typeof verificationResponseSchema>;

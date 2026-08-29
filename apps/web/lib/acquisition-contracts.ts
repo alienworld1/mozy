@@ -27,6 +27,11 @@ export const marketAbi = parseAbi([
   "function expireMandate(uint256 mandateId)",
   "function refundMandate(uint256 mandateId,uint256 amount)",
   "function closeMandate(uint256 mandateId)",
+  "function expireReservation(uint256 reservationId)",
+]);
+
+export const chainInfoAbi = parseAbi([
+  "function get_latest_attestation_height_and_hash(uint64 chainKey) view returns (uint64 height,bytes32 hash,bool isAttestation,bool exists)",
 ]);
 
 export const registryAbi = parseAbi([

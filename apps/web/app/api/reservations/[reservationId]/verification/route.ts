@@ -1,6 +1,14 @@
 import "server-only";
 import { releaseConfig } from "@mozy/chain-config";
-import { getDatabase, getVerification, safePhase } from "@mozy/db";
+import {
+  getDatabase,
+  getHeartbeats,
+  getVerification,
+  candidateNextAction,
+  publicReason,
+  publicReasonClasses,
+  safePhase,
+} from "@mozy/db";
 import { createPublicClient, http } from "viem";
 import { NextResponse } from "next/server";
 import { marketAbi } from "@/lib/acquisition-contracts";
@@ -26,26 +34,43 @@ export async function GET(
       chain: releaseConfig.creditcoin,
       transport: http(releaseConfig.creditcoin.rpcUrls.default.http[0]),
     });
-    const [reservation, rows] = await Promise.all([
-      client.readContract({
-        address: releaseConfig.contracts.market,
-        abi: marketAbi,
-        functionName: "getReservation",
-        args: [BigInt(reservationId)],
-      }),
-      getVerification(
-        getDatabase(),
-        releaseConfig.configVersion,
-        reservationId,
-      ),
-    ]);
-    const canonicalStatus =
-      ["Active", "Expired", "Settled"][reservation.status] ?? "Unknown";
+    const reservation = await client.readContract({
+      address: releaseConfig.contracts.market,
+      abi: marketAbi,
+      functionName: "getReservation",
+      args: [BigInt(reservationId)],
+    });
+    const canonicalStatuses = ["Active", "Expired", "Settled"] as const;
+    const canonicalStatus = canonicalStatuses[reservation.status] ?? "Unknown";
+    const db = getDatabase();
+    let rows: Awaited<ReturnType<typeof getVerification>> = [];
+    let projectionFreshness: "fresh" | "refreshing" | "degraded" = "degraded";
+    let verificationAvailability: "normal" | "delayed" | "unavailable" = "unavailable";
+    try {
+      const [verificationRows, heartbeats] = await Promise.all([
+        getVerification(db, releaseConfig.configVersion, reservationId),
+        getHeartbeats(db, releaseConfig.configVersion),
+      ]);
+      rows = verificationRows;
+      const recent = heartbeats.filter(
+        (heartbeat) => Date.now() - heartbeat.heartbeatAt.getTime() <= 120_000,
+      );
+      projectionFreshness = recent.length === 3 ? "fresh" : "refreshing";
+      verificationAvailability = recent.some(
+        (heartbeat) => heartbeat.streamKey === "worker",
+      )
+        ? "normal"
+        : "delayed";
+    } catch {
+      // Canonical reservation state remains useful when projection enrichment is unavailable.
+    }
     return NextResponse.json({
       ok: true,
       reservationId,
       canonicalReservationStatus: canonicalStatus,
-      projectionFreshness: "fresh",
+      canonicalFreshness: "fresh",
+      projectionFreshness,
+      verificationAvailability,
       candidates: rows.map(({ candidate, job }) => ({
         id: candidate.id.toString(),
         transactionHash: candidate.transactionHash,
@@ -53,8 +78,19 @@ export async function GET(
         registeredAt: candidate.registeredAt.toISOString(),
         observedAt: candidate.observedAt?.toISOString() ?? null,
         semanticStatus: candidate.semanticStatus,
-        rejectionClass: candidate.rejectionClass,
-        rejectionMessage: candidate.rejectionDetailSafe,
+        reasonClass:
+          candidate.rejectionClass &&
+          publicReasonClasses.includes(
+            candidate.rejectionClass as (typeof publicReasonClasses)[number],
+          )
+            ? candidate.rejectionClass
+            : candidate.semanticStatus === "rejected"
+              ? publicReason(candidate.rejectionDetailSafe ?? "").reasonClass
+              : null,
+        reasonMessage:
+          candidate.semanticStatus === "rejected"
+            ? publicReason(candidate.rejectionDetailSafe ?? "").message
+            : null,
         replacesCandidateId:
           candidate.replacesTransactionId?.toString() ?? null,
         phase: job
@@ -66,24 +102,20 @@ export async function GET(
                   : job.status,
             )
           : "preparing_verification",
-        nextAction:
-          !job ||
-          [
-            "DETECTED",
-            "WAITING_SOURCE_CONFIRMATION",
-            "WAITING_ATTESTATION",
-            "PROOF_READY",
-            "SUBMITTING",
-          ].includes(job.status)
-            ? "waiting"
-            : job.status === "RETRYABLE"
-              ? "automatic_retry"
-              : "none",
+        affectedObject:
+          job?.status === "RETRYABLE" ? "infrastructure" : "candidate",
+        reservationUnchanged:
+          canonicalStatus === "Active" && job?.status === "TERMINAL_REJECTED",
+        nextAction: candidateNextAction(
+          canonicalStatus,
+          job?.status,
+          job?.resumeStatus,
+        ),
         statusMessage: job?.lastErrorDetailSafe ?? null,
         settlementTransactionHash: job?.creditcoinSettlementTxHash ?? null,
         updatedAt: (job?.updatedAt ?? candidate.updatedAt).toISOString(),
       })),
-    });
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return NextResponse.json(
       {

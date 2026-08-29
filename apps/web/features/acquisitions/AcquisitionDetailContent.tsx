@@ -9,7 +9,7 @@ import { TermsSchedule } from "./TermsSchedule";
 import type { Acquisition, InstrumentModel, Reservation } from "./types";
 import { AcquisitionInstrument } from "./instrument/AcquisitionInstrument";
 import { useFillMeasurement } from "./instrument/useFillMeasurement";
-import { SettledFillSchedule } from "./SettledFillSchedule";
+import { ReservationLifecycleSchedule } from "./ReservationLifecycleSchedule";
 
 const noReservations: Reservation[] = [];
 
@@ -60,7 +60,7 @@ export function AcquisitionDetailContent({
       <BudgetSchedule mandate={mandate} account={account} />
     </div>
     <TermsSchedule mandate={mandate} />
-    <SettledFillSchedule reservations={reservationDetails ?? noReservations} />
+    <ReservationLifecycleSchedule reservations={reservationDetails ?? noReservations} loading={reservationDetailsLoading} degraded={reservationDetailsError} onRetry={() => void onRetryReservations()} />
     {!accountingVerified ? <p className="mt-8 border-l-2 border-error pl-4 text-sm text-error">This acquisition’s accounting could not be verified. Refresh before continuing.</p> : null}
     <LifecycleControls acquisition={acquisition} accountingVerified={accountingVerified} onRefresh={onRefresh} />
     <TechnicalDisclosure mandate={mandate} />

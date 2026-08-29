@@ -24,6 +24,8 @@ import { VerificationSequence } from "./VerificationSequence";
 import { DurableCandidateHistory } from "./DurableCandidateHistory";
 import { needsCanonicalReservationRefresh } from "./verification";
 import { useReceiptAvailability } from "@/features/receipts/useReceiptAvailability";
+import { ReservationRecovery } from "./ReservationRecovery";
+import { CandidateRecovery } from "./CandidateRecovery";
 
 export function ReservationWorkspaceContent({
   data,
@@ -71,6 +73,10 @@ export function ReservationWorkspaceContent({
     releaseConfig.settlementToken.decimals,
   );
   const durableCandidate = verification.data?.candidates[0];
+  const replacementAvailable =
+    active && durableCandidate?.nextAction === "replace_candidate";
+  const registrationAllowed =
+    active && connectedSolver && (!durableCandidate || replacementAvailable);
   const currentCandidate: CandidateRecord | undefined =
     candidates.current ??
     (durableCandidate
@@ -224,7 +230,8 @@ export function ReservationWorkspaceContent({
     delivery.pending ||
     delivery.balance === undefined ||
     delivery.balance < data.reservation.quantity ||
-    activeCandidate?.failureMessage === "status_uncertain";
+    activeCandidate?.failureMessage === "status_uncertain" ||
+    (!!durableCandidate && !replacementAvailable);
   let disabledReason: string | undefined;
   if (!active)
     disabledReason =
@@ -343,10 +350,24 @@ export function ReservationWorkspaceContent({
                 ? verification.error instanceof Error
                   ? verification.error.message
                   : "Verification unavailable"
+                : verification.data?.verificationAvailability === "unavailable"
+                  ? "Verification enrichment is unavailable."
                 : undefined
             }
             onRetry={() => void verification.refetch()}
           />
+          <CandidateRecovery
+            candidate={durableCandidate}
+            data={data}
+            canReplace={replacementAvailable && connectedSolver}
+            onReplace={() => {
+              setManualOpen(true);
+              requestAnimationFrame(() =>
+                document.getElementById("foreign-transaction-hash")?.focus(),
+              );
+            }}
+          />
+          <ReservationRecovery data={data} onRefresh={onRefresh} />
         </main>
         <aside
           className="border-t border-line pt-8 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8"
@@ -406,7 +427,7 @@ export function ReservationWorkspaceContent({
               ) : null}
             </div>
           ) : null}
-          {active && connectedSolver && onForeignNetwork && !activeCandidate ? (
+          {active && connectedSolver && onForeignNetwork && (!activeCandidate || replacementAvailable) ? (
             <div className="mt-6">
               <button
                 type="button"
@@ -414,7 +435,7 @@ export function ReservationWorkspaceContent({
                 onClick={() => void sendDelivery()}
                 className="min-h-11 w-full rounded-control bg-signal px-4 text-sm font-medium text-paper-raised outline-none hover:bg-signal-strong disabled:cursor-not-allowed disabled:bg-line-emphasis focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
               >
-                Send {amount} {releaseConfig.deliveryToken.symbol}
+                {replacementAvailable ? "Send replacement" : `Send ${amount} ${releaseConfig.deliveryToken.symbol}`}
               </button>
               {disabledReason ? (
                 <p className="mt-2 text-xs leading-5 text-ink-tertiary">
@@ -467,16 +488,16 @@ export function ReservationWorkspaceContent({
           ) : null}
           <button
             type="button"
-            disabled={!active || !connectedSolver}
+            disabled={!registrationAllowed}
             onClick={() => setManualOpen((open) => !open)}
             className="mt-7 min-h-11 text-sm font-medium underline underline-offset-4 outline-none disabled:text-ink-tertiary focus-visible:outline-2 focus-visible:outline-signal"
           >
-            I already sent this transfer
+            {replacementAvailable ? "Register another transaction" : "I already sent this transfer"}
           </button>
           {manualOpen ? (
             <ExternalTransactionForm
               current={currentCandidate}
-              disabled={!active || !connectedSolver}
+              disabled={!registrationAllowed}
               onRegister={registerExternal}
             />
           ) : null}

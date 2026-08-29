@@ -25,7 +25,11 @@ export function DurableCandidateHistory({
             className={`border-l-2 pl-3 ${index === 0 ? "border-signal" : "border-line-strong"}`}
           >
             <span className="block text-xs font-medium uppercase">
-              {index === 0 ? scheduleAnnotation(candidate) : "Superseded"}
+              {candidate.phase === "candidate_not_accepted"
+                ? "Rejected"
+                : index === 0
+                  ? scheduleAnnotation(candidate)
+                  : "Superseded"}
             </span>
             <a
               href={`${releaseConfig.foreign.blockExplorers.default.url}/tx/${candidate.transactionHash}`}
@@ -36,6 +40,14 @@ export function DurableCandidateHistory({
             >
               {candidate.transactionHash}
             </a>
+            {candidate.phase === "candidate_not_accepted" ? (
+              <>
+                <p className="text-xs leading-5 text-error">{candidate.reasonMessage}</p>
+                {candidate.reservationUnchanged ? (
+                  <p className="mt-1 text-xs leading-5 text-ink-secondary">The reservation remains Active. Its payout and bond remain locked.</p>
+                ) : null}
+              </>
+            ) : null}
           </li>
         ))}
       </ul>

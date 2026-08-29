@@ -4,7 +4,8 @@ import { releaseConfig } from "@mozy/chain-config";
 import { useQuery } from "@tanstack/react-query";
 import { getAddress } from "viem";
 import { usePublicClient } from "wagmi";
-import { marketAbi } from "@/lib/acquisition-contracts";
+import { chainInfoAbi, marketAbi } from "@/lib/acquisition-contracts";
+import { getExpiryReadiness, type ExpiryReadiness } from "./reservation-recovery";
 import type {
   Mandate,
   Reservation,
@@ -16,6 +17,9 @@ export type ReservationWorkspaceData = {
   requirements: ReservationRequirements;
   mandate: Mandate;
   snapshotBlock: bigint;
+  chainTimestamp: bigint;
+  latestAttestedHeight: bigint | null;
+  expiryReadiness: ExpiryReadiness;
 };
 
 export function useReservationWorkspace(reservationId: bigint) {
@@ -33,13 +37,23 @@ export function useReservationWorkspace(reservationId: bigint) {
     queryFn: async (): Promise<ReservationWorkspaceData> => {
       if (!client) throw new Error("Reservation unavailable");
       const snapshotBlock = await client.getBlockNumber();
-      const reservation = (await client.readContract({
-        address: releaseConfig.contracts.market,
-        abi: marketAbi,
-        functionName: "getReservation",
-        args: [reservationId],
-        blockNumber: snapshotBlock,
-      })) as Reservation;
+      const [reservation, block, chainInfo] = await Promise.all([
+        client.readContract({
+          address: releaseConfig.contracts.market,
+          abi: marketAbi,
+          functionName: "getReservation",
+          args: [reservationId],
+          blockNumber: snapshotBlock,
+        }) as Promise<Reservation>,
+        client.getBlock({ blockNumber: snapshotBlock }),
+        client.readContract({
+          address: releaseConfig.contracts.chainInfo,
+          abi: chainInfoAbi,
+          functionName: "get_latest_attestation_height_and_hash",
+          args: [releaseConfig.foreign.sourceChainKey],
+          blockNumber: snapshotBlock,
+        }).catch(() => null),
+      ]);
       const [rawRequirements, mandate] = await Promise.all([
         client.readContract({
           address: releaseConfig.contracts.market,
@@ -88,6 +102,16 @@ export function useReservationWorkspace(reservationId: bigint) {
         requirements,
         mandate: mandate as Mandate,
         snapshotBlock,
+        chainTimestamp: block.timestamp,
+        latestAttestedHeight:
+          chainInfo && chainInfo[3] ? chainInfo[0] : null,
+        expiryReadiness: getExpiryReadiness({
+          status: reservation.status,
+          chainTimestamp: block.timestamp,
+          deliveryDeadline: reservation.deliveryDeadline,
+          latestAttestedHeight: chainInfo && chainInfo[3] ? chainInfo[0] : null,
+          expiryEligibleHeight: reservation.expiryEligibleHeight,
+        }),
       };
     },
   });

@@ -209,7 +209,7 @@ export function VerificationSequence({
                 </span>
                 {current && rejected ? (
                   <p className="mt-1 text-sm leading-6 text-error">
-                    {candidate?.rejectionMessage ??
+                    {candidate?.reasonMessage ??
                       "Delivery not accepted. We couldn't identify one qualifying standard transfer."}
                   </p>
                 ) : null}
@@ -278,7 +278,7 @@ export function VerificationSequence({
         </a>
       ) : null}
       <div className="sr-only" aria-live="polite">
-        {rejected ? candidate?.rejectionMessage : phases[reached]?.label}
+        {rejected ? candidate?.reasonMessage : phases[reached]?.label}
       </div>
       {error ? (
         <div className="mt-5">

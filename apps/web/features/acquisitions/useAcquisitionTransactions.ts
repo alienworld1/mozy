@@ -3,7 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { releaseConfig } from "@mozy/chain-config";
 import { useCallback, useState } from "react";
-import type { Hash } from "viem";
+import { formatUnits, type Hash } from "viem";
 import { useConnection, usePublicClient, useWalletClient } from "wagmi";
 import { erc20Abi, marketAbi, vaultAbi } from "@/lib/acquisition-contracts";
 import { classifyWalletError } from "@/lib/wallet-errors";
@@ -89,14 +89,21 @@ export function useAcquisitionTransactions(mandateId: bigint) {
         queryClient.invalidateQueries({ queryKey: ["owned-acquisitions", releaseConfig.configVersion] }),
         queryClient.invalidateQueries({ queryKey: ["funding-readiness", releaseConfig.configVersion] }),
         queryClient.invalidateQueries({ queryKey: ["release-market", releaseConfig.configVersion] }),
+        queryClient.invalidateQueries({ queryKey: ["mandate-reservations", releaseConfig.configVersion] }),
+        queryClient.invalidateQueries({ queryKey: ["solver-reservations", releaseConfig.configVersion] }),
+        queryClient.invalidateQueries({ queryKey: ["activity"] }),
       ]);
       setPhase("canonical_confirmed");
       const successes: Record<AcquisitionAction, string> = { approve: "Approval confirmed", fund: "Acquisition open", pause: "Acquisition paused", resume: "Acquisition resumed", cancel: "Open remainder cancelled", expire: "Acquisition marked expired", refund: "Funds reclaimed", close: "Acquisition closed" };
-      setMessage(successes[nextAction]);
+      setMessage(
+        nextAction === "refund" && actionAmount !== undefined
+          ? `${formatUnits(actionAmount, releaseConfig.settlementToken.decimals)} ${releaseConfig.settlementToken.symbol} reclaimed. Remaining free balance: 0 ${releaseConfig.settlementToken.symbol}.`
+          : successes[nextAction],
+      );
     } catch (error) {
-      setPhase("rejected");
       const rejected = classifyWalletError(error) === "user_rejected";
       const statusUncertain = !!broadcastHash && !receiptKnown;
+      setPhase(statusUncertain ? "submitted" : "rejected");
       setUncertain(statusUncertain);
       setMessage(statusUncertain ? "Transaction status is uncertain. Check the transaction before trying again." : nextAction === "approve" && rejected ? "Approval cancelled. No BTKT was moved." : rejected ? "Transaction cancelled. Nothing was submitted." : nextAction === "fund" ? "Funding did not complete. Your acquisition remains in its latest confirmed state." : "The acquisition changed before this action completed. Review the latest state and try again.");
       await Promise.all([
