@@ -138,3 +138,86 @@ The replay identity is derived twice through the current official precompile tra
 - Missing committed evidence: `attestcoin:evidence:check` reports `No verified receipt evidence found` and the next command. It never invents a sample success.
 
 Raw proof caches and transfer expectations are operational artifacts and remain gitignored. The success manifest contains only public addresses, hashes, decoded receipt fields, version pins, and source links. This validation process is testnet-only, is not audited, and is not production key-management or settlement code.
+
+## Release settlement integration
+
+The workflow above proves the pinned receipt path through `ReceiptSemanticProbe`. That contract is deliberately stateless economic-wise: it authenticates receipt semantics and emits evidence, but it has no Acquisition Mandate, reservation, locked payout, bond, or vault authority. The supported product path uses `MozySettlement` at `0x6A25220617faF467f9F83cb5162CBE69BD09ea4b`; it consumes the same official proof shape and additionally binds the authenticated receipt to canonical reservation economics.
+
+The release remains pinned to configuration `attestcoin-spike-cc3-sepolia-2026-08-25`:
+
+| Component | Pin |
+|---|---|
+| Creditcoin | CC3 Testnet, chain `102031` |
+| Source | Ethereum Sepolia, chain `11155111`, source key `1` |
+| Verifier | `0x0000000000000000000000000000000000000FD2` |
+| ChainInfo | `0x0000000000000000000000000000000000000fD3` |
+| EVM v1 decoder | `0x731c345d79Fb8BbDC541f9DF3b6317585F849F9f` |
+| Contracts package | `@gluwa/usc-contracts@0.1.2` |
+| SDK package | `@gluwa/usc-sdk@0.18.0` |
+| TEST | `0x0F24FD9e0524BA53d3f0A4A40350Adf5370b4A53`, 18 decimals |
+| BTKT | `0x914Cf96BF28b7b4921db27b264ecEd71aC91134E`, 18 decimals |
+
+Attestcoin is the product name. `USC v2` remains in package/interface names and the pinned architecture label; it does not identify a second verification system.
+
+### Readiness and authenticated height
+
+Proof readiness is determined by attested source height, not elapsed time. The proof builder must report an attested height at or above the TEST transaction’s Ethereum Sepolia block. A receipt may therefore be discovered successfully while proof generation still returns a waiting condition. There is no fixed ETA.
+
+At reservation creation, `MozyMarket` reads the official ChainInfo boundary and stores the inclusive source window `[H + 1, H + 256]`. Eligible unresolved expiry additionally requires the authenticated head to reach the stored end plus `64` grace blocks and the Creditcoin delivery deadline to have passed. Source RPC timestamps and relayer input do not set these bounds.
+
+### Candidate inspection and persistence
+
+Candidate registration records a transaction hash against an immutable reservation. The worker re-reads the Ethereum transaction and receipt. It treats temporary RPC/source-confirmation failures as retryable, and rejects a terminal semantic mismatch rather than searching for a convenient interpretation.
+
+Before requesting a proof, candidate inspection requires:
+
+1. Ethereum Sepolia chain identity and a successful receipt;
+2. transaction target equal to TEST;
+3. direct `transfer(address,uint256)` calldata;
+4. TEST as the qualifying log emitter;
+5. the stored solver as sender and buyer delivery wallet as recipient;
+6. delivered amount at least equal to reserved quantity;
+7. a source block inside the reservation’s inclusive range; and
+8. one unambiguous qualifying transfer/log identity.
+
+Overdelivery is observable but does not alter locked quantity or payout. A source transaction is never resent by the worker.
+
+The worker persists validated proof JSON, version `@gluwa/usc-sdk@0.18.0`, and a checksum in the private database. Local CLI proof files remain under ignored `.attestcoin/proofs/`. Raw proof arrays are not returned through product APIs or printed during settlement.
+
+### On-chain verification and settlement
+
+`MozySettlement.settle` accepts a reservation ID plus the official verifier arguments: chain key, header number, encoded transaction, Merkle proof, and continuity proof. Submission is permissionless. The caller only supplies gas; payout always goes to the solver stored by `MozyMarket`.
+
+The official verifier authenticates source chain, height, inclusion, and receipt material. The EVM v1 decoder exposes the transaction and receipt fields. `MozySettlement` then repeats the economically decisive semantic checks on-chain: chain, successful receipt, token target, direct transfer selector and recipient/amount, token log emitter, solver sender, buyer recipient, minimum amount, source window, transaction/log identity, active reservation, and unused replay identity.
+
+Replay identity is derived from authenticated chain key, source height, and transaction index. The settlement contract records the reservation consuming that identity before releasing value. A repeated receipt or competing submission cannot pay another reservation.
+
+After proof verification and semantic acceptance, `MozyMarket`/`SettlementVault` spend the exact locked payout to the stored solver, return the exact isolated bond, update mandate quantity/accounting, and emit the canonical settlement event. The worker and database cannot bypass this transition.
+
+### Retry, restart, and terminal failures
+
+The durable job sequence is `DETECTED`, `WAITING_SOURCE_CONFIRMATION`, `WAITING_ATTESTATION`, `PROOF_READY`, `SUBMITTING`, then `CONFIRMED`; retryable infrastructure failures retain a resumable phase, while semantic failures become `TERMINAL_REJECTED`. Jobs use 60-second expiring leases and bounded backoff. Restarting the process reclaims expired work and reconciles a known Creditcoin hash before another submission.
+
+Retry the same read/proof identity after an RPC timeout, unavailable proof builder, pending source confirmation, unattested block, or transient database failure. Preserve and inspect a submitted transaction hash before retrying any write. Do not retry invalid token/sender/recipient/amount, failed receipt, out-of-window height, malformed proof, consumed replay identity, expired reservation, or rejected settlement simulation as though time could make the semantics valid.
+
+### Release evidence
+
+The stateless spike is checked with:
+
+```bash
+pnpm attestcoin:evidence:check
+```
+
+The production settlement path is inspected and reconciled with:
+
+```bash
+pnpm protocol:inspect --reservation 1
+pnpm protocol:inspect --receipt <replay-identity>
+pnpm protocol:evidence:check
+```
+
+The public artifacts are [`../artifacts/attestcoin/evidence.json`](../artifacts/attestcoin/evidence.json), [`../artifacts/protocol/cc3-settlement.json`](../artifacts/protocol/cc3-settlement.json), and [`../artifacts/protocol/cc3-settlement-evidence.json`](../artifacts/protocol/cc3-settlement-evidence.json). The first proves the probe path; the latter two identify and verify the economic settlement deployment. See [`architecture.md`](architecture.md), [`security.md`](security.md), and [`runbook.md`](runbook.md) for authority and operations.
+
+### Direct-delivery invariant
+
+There is no Mozy contract or adapter on Ethereum Sepolia. The source transaction targets TEST and moves the token directly from solver to buyer. Attestcoin authenticates evidence of that receipt; it does not move the token. This statement describes the release design. For a completed settlement, the committed evidence check must also confirm the actual transaction target and decoded transfer fields before that transaction is presented as proof of the invariant.
