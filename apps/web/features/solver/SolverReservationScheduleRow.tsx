@@ -8,6 +8,8 @@ import {
 } from "@/features/acquisitions/format";
 import { reservationStatuses } from "@/features/acquisitions/types";
 import { useCandidateRecords } from "./useCandidateRecords";
+import { scheduleAnnotation } from "./verification";
+import { useVerification } from "./useVerification";
 import type { SolverReservationRow } from "./useSolverReservations";
 
 export function SolverReservationScheduleRow({
@@ -21,6 +23,7 @@ export function SolverReservationScheduleRow({
     reservation.id.toString(),
     reservation.solver,
   );
+  const verification = useVerification(reservation.id.toString());
   return (
     <li className="grid gap-4 border-b border-line py-6 lg:grid-cols-[0.65fr_0.65fr_0.9fr_0.9fr_1.2fr_auto] lg:items-center">
       <div>
@@ -72,9 +75,11 @@ export function SolverReservationScheduleRow({
           {formatDateTime(reservation.deliveryDeadline)}
         </span>
         <span className="block text-xs text-ink-secondary">
-          {candidates.current
-            ? `Candidate ${candidates.current.localState.replace("_", " ")}`
-            : "No candidate registered"}
+          {verification.data
+            ? scheduleAnnotation(verification.data.candidates[0])
+            : candidates.current
+              ? "Submitted"
+              : "No transaction"}
         </span>
         {candidates.records
           .filter((record) =>

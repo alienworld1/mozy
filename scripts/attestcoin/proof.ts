@@ -13,24 +13,39 @@ export async function fetchAndStoreProof(input: {
   proofBuilderUrl: string;
   attestedHeight: number;
 }): Promise<StoredProof> {
+  const proof = await fetchProof(input);
+  await writeJson(transactionFile(proofRoot, input.hash), proof);
+  return proof;
+}
+
+export async function fetchProof(input: {
+  hash: `0x${string}`;
+  blockNumber: number;
+  proofBuilderUrl: string;
+  attestedHeight: number;
+}): Promise<StoredProof> {
   if (input.attestedHeight < input.blockNumber) {
     throw waiting(input.blockNumber, input.attestedHeight);
   }
 
-  const builder = new proofProvider.service.ProofBuilder(config.foreign.sourceChainKey, input.proofBuilderUrl, 10_000);
+  const builder = new proofProvider.service.ProofBuilder(
+    config.foreign.sourceChainKey,
+    input.proofBuilderUrl,
+    10_000,
+  );
   let lastError = "proof builder did not return a proof";
   for (let attempt = 0; attempt < 3; attempt++) {
     const result = await builder.getProof(input.hash);
     if (result.success && result.data) {
       const proof = validateProof(result.data, input.hash, input.blockNumber);
-      await writeJson(transactionFile(proofRoot, input.hash), proof);
       return proof;
     }
     lastError = result.error ?? lastError;
     if (attempt < 2) await delay(backoffWithJitter(attempt));
   }
 
-  if (/not found|attest|cache|height/i.test(lastError)) throw waiting(input.blockNumber, input.attestedHeight);
+  if (/not found|attest|cache|height/i.test(lastError))
+    throw waiting(input.blockNumber, input.attestedHeight);
   throw new AttestcoinError(
     "Generating proof",
     "proof_service_error",
@@ -52,13 +67,22 @@ function validateProof(
     !Number.isSafeInteger(value.txIndex) ||
     value.txIndex < 0
   ) {
-    throw invalidProof("chain key, block height, transaction hash, or transaction index");
+    throw invalidProof(
+      "chain key, block height, transaction hash, or transaction index",
+    );
   }
-  if (!isHexString(value.txBytes) || value.txBytes === "0x") throw invalidProof("txBytes");
+  if (!isHexString(value.txBytes) || value.txBytes === "0x")
+    throw invalidProof("txBytes");
   requireHex(value.merkleProof.root, 32, "merkleProof.root");
-  requireHex(value.continuityProof.lowerEndpointDigest, 32, "continuityProof.lowerEndpointDigest");
-  for (const sibling of value.merkleProof.siblings) requireHex(sibling.hash, 32, "merkleProof.siblings[].hash");
-  for (const root of value.continuityProof.roots) requireHex(root, 32, "continuityProof.roots[]");
+  requireHex(
+    value.continuityProof.lowerEndpointDigest,
+    32,
+    "continuityProof.lowerEndpointDigest",
+  );
+  for (const sibling of value.merkleProof.siblings)
+    requireHex(sibling.hash, 32, "merkleProof.siblings[].hash");
+  for (const root of value.continuityProof.roots)
+    requireHex(root, 32, "continuityProof.roots[]");
 
   return {
     schemaVersion: "1",
@@ -76,7 +100,8 @@ function validateProof(
       })),
     },
     continuityProof: {
-      lowerEndpointDigest: value.continuityProof.lowerEndpointDigest as `0x${string}`,
+      lowerEndpointDigest: value.continuityProof
+        .lowerEndpointDigest as `0x${string}`,
       roots: value.continuityProof.roots as `0x${string}`[],
     },
     cached: Boolean(value.cached),

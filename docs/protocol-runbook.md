@@ -149,3 +149,23 @@ Fund the Creditcoin dispenser with tCTC and at least 100 BTKT per expected alloc
 Before judging, open `/test-funds` with a fresh disposable wallet and confirm both token balances, both native gas checks, signature verification, explorer links, and the 24-hour repeat-claim protection. Monitor both dispenser addresses on their explorers and refill before either token balance falls below two bundles or native gas becomes low. Set `MOZY_FAUCET_ENABLED=false` to stop new allocations immediately; existing submitted transactions remain canonical and must not be resent automatically.
 
 Rotate a dispenser key by disabling the feature, waiting for any submitted transactions to resolve, funding a new disposable account, replacing only that network's server secret, and re-enabling after a fresh readiness check. Never log, commit, or expose either key through a `NEXT_PUBLIC_` variable.
+
+## Durable verification worker
+
+Apply the committed private-schema migration with a direct or session Postgres connection:
+
+```bash
+DATABASE_MIGRATION_URL=<direct-or-session-url> pnpm db:migrate
+```
+
+The web and worker runtimes use `DATABASE_URL` through the Supabase transaction pooler with prepared statements disabled. Keep the `mozy` schema out of the Supabase Data API. Configure `MOZY_RELAYER_PRIVATE_KEY` with a dedicated disposable CC3-only testnet account holding only enough tCTC for settlements; never reuse a buyer, solver, deployer, admin, or faucet key.
+
+Start the restart-safe proof worker, event indexer, and reconciler in one process:
+
+```bash
+pnpm worker:dev
+```
+
+`GET /api/health` reports only coarse database, worker, indexer, and reconciler health. A degraded response does not change protocol state. Restarting the process is safe: expired 60-second job leases are reclaimable, source transfers are never resent, and known Creditcoin settlement hashes are reconciled before another submission.
+
+For the permissionless-relay smoke path, fund a second disposable CC3 account and run the existing `protocol:settle` command with the same validated proof before the normal worker submits it. Confirm `ReservationSettled.relayer` changes while the canonical solver payout and bond return do not. Do not expose this as a product control.

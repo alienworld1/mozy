@@ -2,7 +2,7 @@
 
 import { releaseConfig } from "@mozy/chain-config";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getAddress, type Hash } from "viem";
 import { useConnection, useSwitchChain } from "wagmi";
 import { TransactionState } from "@/components/states/TransactionState";
@@ -19,6 +19,10 @@ import { useCandidateRecords } from "./useCandidateRecords";
 import { useCandidateRegistration } from "./useCandidateRegistration";
 import { useDeliveryTransaction } from "./useDeliveryTransaction";
 import { useReservationWorkspace } from "./useReservationWorkspace";
+import { useVerification } from "./useVerification";
+import { VerificationSequence } from "./VerificationSequence";
+import { DurableCandidateHistory } from "./DurableCandidateHistory";
+import { needsCanonicalReservationRefresh } from "./verification";
 
 export function ReservationWorkspaceContent({
   data,
@@ -33,6 +37,7 @@ export function ReservationWorkspaceContent({
   const [switchMessage, setSwitchMessage] = useState<string>();
   const [manualOpen, setManualOpen] = useState(false);
   const [registrationMessage, setRegistrationMessage] = useState<string>();
+  const canonicalRefreshRequested = useRef(false);
   const connectedSolver =
     !!connection.address &&
     getAddress(connection.address) === getAddress(data.reservation.solver);
@@ -43,6 +48,8 @@ export function ReservationWorkspaceContent({
     connectedSolver,
   );
   const registration = useCandidateRegistration(data.reservation);
+  const verification = useVerification(data.reservation.id.toString());
+  const reconcileDurableCandidates = candidates.reconcileDurable;
   const delivery = useDeliveryTransaction(data);
   const refreshDeliveryBalance = delivery.refreshBalance;
   const active = data.reservation.status === 0;
@@ -59,10 +66,56 @@ export function ReservationWorkspaceContent({
     data.reservation.bondAmount,
     releaseConfig.settlementToken.decimals,
   );
+  const durableCandidate = verification.data?.candidates[0];
+  const currentCandidate: CandidateRecord | undefined =
+    candidates.current ??
+    (durableCandidate
+      ? {
+          configVersion: releaseConfig.configVersion,
+          reservationId: data.reservation.id.toString(),
+          solver: getAddress(data.reservation.solver),
+          foreignChainId: releaseConfig.foreign.id,
+          transactionHash: durableCandidate.transactionHash as Hash,
+          source: durableCandidate.source,
+          localState: "registered",
+          submittedAt: durableCandidate.registeredAt,
+        }
+      : undefined);
 
   useEffect(() => {
     if (onForeignNetwork && connectedSolver) void refreshDeliveryBalance();
   }, [connectedSolver, onForeignNetwork, refreshDeliveryBalance]);
+
+  useEffect(() => {
+    if (verification.data?.candidates.length) {
+      reconcileDurableCandidates(
+        verification.data.candidates.map(
+          (candidate) => candidate.transactionHash,
+        ),
+      );
+    }
+  }, [reconcileDurableCandidates, verification.data]);
+
+  useEffect(() => {
+    if (data.reservation.status === 2) {
+      canonicalRefreshRequested.current = false;
+      return;
+    }
+    if (
+      needsCanonicalReservationRefresh(
+        verification.data?.canonicalReservationStatus,
+        data.reservation.status,
+      ) &&
+      !canonicalRefreshRequested.current
+    ) {
+      canonicalRefreshRequested.current = true;
+      onRefresh();
+    }
+  }, [
+    data.reservation.status,
+    onRefresh,
+    verification.data?.canonicalReservationStatus,
+  ]);
 
   async function switchToSepolia() {
     setSwitching(true);
@@ -113,7 +166,7 @@ export function ReservationWorkspaceContent({
         const registered = await registration.register(
           outcome.hash,
           "composer",
-          candidates.current?.transactionHash as Hash | undefined,
+          currentCandidate?.transactionHash as Hash | undefined,
         );
         candidates.upsert({
           ...registered,
@@ -159,9 +212,7 @@ export function ReservationWorkspaceContent({
   }
 
   const activeCandidate =
-    candidates.current?.localState === "failed"
-      ? undefined
-      : candidates.current;
+    currentCandidate?.localState === "failed" ? undefined : currentCandidate;
   const deliveryDisabled =
     !active ||
     !connectedSolver ||
@@ -266,6 +317,32 @@ export function ReservationWorkspaceContent({
               </div>
             </dl>
           </details>
+          <VerificationSequence
+            candidate={durableCandidate}
+            pendingTransactionHash={
+              currentCandidate?.localState === "registered"
+                ? currentCandidate.transactionHash
+                : undefined
+            }
+            canonicalSettled={data.reservation.status === 2}
+            payout={data.reservation.lockedPayout}
+            loading={verification.isLoading}
+            refreshing={verification.isFetching && !verification.isLoading}
+            automaticChecksActive={
+              active &&
+              (!durableCandidate || durableCandidate.nextAction !== "none")
+            }
+            lastCheckedAt={verification.dataUpdatedAt || undefined}
+            paused={verification.fetchStatus === "paused"}
+            error={
+              verification.isError
+                ? verification.error instanceof Error
+                  ? verification.error.message
+                  : "Verification unavailable"
+                : undefined
+            }
+            onRetry={() => void verification.refetch()}
+          />
         </main>
         <aside
           className="border-t border-line pt-8 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8"
@@ -288,7 +365,7 @@ export function ReservationWorkspaceContent({
               </dd>
             </div>
           </dl>
-          {activeCandidate ? (
+          {activeCandidate && !verification.data?.candidates[0] ? (
             <div className="mt-6 border-l-2 border-pending pl-4">
               <p className="text-sm font-medium uppercase tracking-wide">
                 Delivery submitted
@@ -340,8 +417,14 @@ export function ReservationWorkspaceContent({
                   {disabledReason}
                 </p>
               ) : null}
-              {delivery.balance !== undefined && delivery.balance < data.reservation.quantity ? (
-                <Link href="/test-funds" className="mt-2 inline-flex min-h-11 items-center text-xs font-medium underline underline-offset-4 outline-none focus-visible:outline-2 focus-visible:outline-signal">Get demo funds</Link>
+              {delivery.balance !== undefined &&
+              delivery.balance < data.reservation.quantity ? (
+                <Link
+                  href="/test-funds"
+                  className="mt-2 inline-flex min-h-11 items-center text-xs font-medium underline underline-offset-4 outline-none focus-visible:outline-2 focus-visible:outline-signal"
+                >
+                  Get demo funds
+                </Link>
               ) : null}
             </div>
           ) : null}
@@ -376,12 +459,16 @@ export function ReservationWorkspaceContent({
           </button>
           {manualOpen ? (
             <ExternalTransactionForm
-              current={candidates.current}
+              current={currentCandidate}
               disabled={!active || !connectedSolver}
               onRegister={registerExternal}
             />
           ) : null}
-          {candidates.records.length > 1 ? (
+          {verification.data?.candidates.length ? (
+            <DurableCandidateHistory
+              candidates={verification.data.candidates}
+            />
+          ) : candidates.records.length > 1 ? (
             <section
               className="mt-8 border-t border-line pt-6"
               aria-labelledby="candidate-history-title"

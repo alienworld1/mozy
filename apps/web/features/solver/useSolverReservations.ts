@@ -30,28 +30,43 @@ export function useSolverReservations(solver?: Address) {
       if (!client || !solver) return [];
       const snapshotBlock = await client.getBlockNumber();
       const ids = new Set<bigint>();
-      for (
-        let fromBlock = releaseConfig.deploymentBlock;
-        fromBlock <= snapshotBlock;
-        fromBlock += LOG_CHUNK_SIZE
-      ) {
-        const toBlock =
-          fromBlock + LOG_CHUNK_SIZE - 1n > snapshotBlock
-            ? snapshotBlock
-            : fromBlock + LOG_CHUNK_SIZE - 1n;
-        const logs = await client.getLogs({
-          address: releaseConfig.contracts.market,
-          event: reservationCreatedEvent,
-          args: { solver },
-          fromBlock,
-          toBlock,
-          strict: true,
-        });
-        for (const log of logs)
-          if (log.args.reservationId !== undefined)
-            ids.add(log.args.reservationId);
-        if (ids.size > MAX_DIRECT_RESERVATIONS)
-          throw new Error("Reservation discovery limit reached");
+      const indexed = await fetch(`/api/solver/${solver}/reservations`)
+        .then(async (response) =>
+          response.ok
+            ? (response.json() as Promise<{
+                reservationIds?: string[];
+                projectionFreshness?: "fresh" | "refreshing";
+              }>)
+            : undefined,
+        )
+        .catch(() => undefined);
+      for (const id of indexed?.reservationIds ?? []) {
+        if (/^[1-9]\d*$/.test(id)) ids.add(BigInt(id));
+      }
+      if (!indexed || indexed.projectionFreshness !== "fresh") {
+        for (
+          let fromBlock = releaseConfig.deploymentBlock;
+          fromBlock <= snapshotBlock;
+          fromBlock += LOG_CHUNK_SIZE
+        ) {
+          const toBlock =
+            fromBlock + LOG_CHUNK_SIZE - 1n > snapshotBlock
+              ? snapshotBlock
+              : fromBlock + LOG_CHUNK_SIZE - 1n;
+          const logs = await client.getLogs({
+            address: releaseConfig.contracts.market,
+            event: reservationCreatedEvent,
+            args: { solver },
+            fromBlock,
+            toBlock,
+            strict: true,
+          });
+          for (const log of logs)
+            if (log.args.reservationId !== undefined)
+              ids.add(log.args.reservationId);
+          if (ids.size > MAX_DIRECT_RESERVATIONS)
+            throw new Error("Reservation discovery limit reached");
+        }
       }
       const discovered = [...ids].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
       const rows: SolverReservationRow[] = [];

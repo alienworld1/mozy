@@ -3,6 +3,7 @@
 import { releaseConfig } from "@mozy/chain-config";
 import { getAddress, type Hash } from "viem";
 import { useConnection, useWalletClient } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Reservation } from "@/features/acquisitions/types";
 import {
   buildRegistrationStatement,
@@ -11,6 +12,7 @@ import {
 } from "./candidate-record";
 
 export function useCandidateRegistration(reservation: Reservation) {
+  const queryClient = useQueryClient();
   const connection = useConnection();
   const wallet = useWalletClient();
   async function register(
@@ -63,6 +65,9 @@ export function useCandidateRegistration(reservation: Reservation) {
         result?.message ??
           "We couldn’t register this transaction. The foreign transfer is unchanged.",
       );
+    await queryClient.invalidateQueries({
+      queryKey: ["reservation-verification", reservation.id.toString()],
+    });
     return {
       configVersion: releaseConfig.configVersion,
       reservationId: reservation.id.toString(),

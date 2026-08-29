@@ -69,9 +69,27 @@ export function useCandidateRecords(
     },
     [enabled, key],
   );
+  const reconcileDurable = useCallback(
+    (serverHashes: readonly string[]) => {
+      if (!enabled) return;
+      const durable = new Set(serverHashes.map((hash) => hash.toLowerCase()));
+      const next = readRecords(key).filter(
+        (record) =>
+          !durable.has(record.transactionHash.toLowerCase()) &&
+          record.localState === "registration_rejected",
+      );
+      const raw = JSON.stringify(next);
+      if (window.localStorage.getItem(key) === raw) return;
+      window.localStorage.setItem(key, raw);
+      cache.set(key, { raw, records: next });
+      window.dispatchEvent(new CustomEvent(eventName, { detail: key }));
+    },
+    [enabled, key],
+  );
   return {
     records,
     upsert,
+    reconcileDurable,
     current: [...records]
       .reverse()
       .find((record) => record.localState !== "replaced"),

@@ -1,4 +1,6 @@
+import "server-only";
 import { releaseConfig } from "@mozy/chain-config";
+import { getDatabase, registerCandidate } from "@mozy/db";
 import {
   createPublicClient,
   getAddress,
@@ -13,6 +15,9 @@ import {
   buildRegistrationStatement,
   candidateRegistrationSchema,
 } from "@/features/solver/candidate-record";
+import { checkRegistrationRateLimit } from "@/lib/registration-rate-limit";
+
+export const runtime = "nodejs";
 
 const MAX_BODY_BYTES = 4_096;
 const MAX_STATEMENT_LIFETIME_MS = 5 * 60 * 1_000;
@@ -91,19 +96,62 @@ export async function POST(
       "signature_expired",
       "This registration signature has expired. Sign a fresh request.",
     );
+  const forwarded = request.headers
+    .get("x-forwarded-for")
+    ?.split(",")[0]
+    ?.trim();
+  try {
+    const allowed = await checkRegistrationRateLimit(
+      body.solver,
+      reservationId,
+      forwarded || request.headers.get("x-real-ip") || "unknown",
+    );
+    if (!allowed)
+      return failure(
+        429,
+        "rate_limited",
+        "Too many registration attempts. Wait a moment, then try again.",
+      );
+  } catch {
+    return failure(
+      503,
+      "rate_limit_unavailable",
+      "We couldn’t register this transaction right now. The foreign transfer is unchanged.",
+    );
+  }
 
   const client = createPublicClient({
     chain: releaseConfig.creditcoin,
     transport: http(releaseConfig.creditcoin.rpcUrls.default.http[0]),
   });
   let reservation: Reservation;
+  let requirements: readonly [
+    {
+      sourceChainKey: bigint;
+      foreignToken: `0x${string}`;
+      foreignTokenDecimals: number;
+      settlementToken: `0x${string}`;
+      settlementTokenDecimals: number;
+      enabled: boolean;
+    },
+    `0x${string}`,
+    `0x${string}`,
+  ];
   try {
-    reservation = (await client.readContract({
-      address: releaseConfig.contracts.market,
-      abi: marketAbi,
-      functionName: "getReservation",
-      args: [BigInt(reservationId)],
-    })) as Reservation;
+    [reservation, requirements] = await Promise.all([
+      client.readContract({
+        address: releaseConfig.contracts.market,
+        abi: marketAbi,
+        functionName: "getReservation",
+        args: [BigInt(reservationId)],
+      }) as Promise<Reservation>,
+      client.readContract({
+        address: releaseConfig.contracts.market,
+        abi: marketAbi,
+        functionName: "getReservationRequirements",
+        args: [BigInt(reservationId)],
+      }),
+    ]);
   } catch {
     return failure(
       404,
@@ -135,11 +183,54 @@ export async function POST(
       "signature_invalid",
       "The wallet signature could not be verified.",
     );
-  return NextResponse.json({
-    ok: true,
-    status: "candidate_registered",
-    reservationId,
-    transactionHash: body.transactionHash.toLowerCase(),
-    canonicalReservationStatus: "Active",
-  });
+  if (
+    requirements[0].sourceChainKey !== releaseConfig.foreign.sourceChainKey ||
+    getAddress(requirements[0].foreignToken) !==
+      getAddress(releaseConfig.deliveryToken.address) ||
+    getAddress(requirements[0].settlementToken) !==
+      getAddress(releaseConfig.settlementToken.address)
+  )
+    return failure(
+      400,
+      "unsupported_environment",
+      "This transaction belongs to an unsupported release environment.",
+    );
+  try {
+    const result = await registerCandidate(getDatabase(), {
+      configVersion: body.configVersion,
+      reservationId,
+      foreignChainId: BigInt(body.foreignChainId),
+      sourceChainKey: requirements[0].sourceChainKey,
+      transactionHash: body.transactionHash.toLowerCase() as `0x${string}`,
+      solver: getAddress(body.solver).toLowerCase() as `0x${string}`,
+      source: body.source,
+      replacesHash: body.replacesHash?.toLowerCase() as
+        | `0x${string}`
+        | undefined,
+    });
+    return NextResponse.json(
+      {
+        ok: true,
+        status: "candidate_registered",
+        candidateId: result.candidate.id.toString(),
+        reservationId,
+        transactionHash: result.candidate.transactionHash,
+        phase: result.job.status,
+        canonicalReservationStatus: "Active",
+      },
+      { status: result.created ? 201 : 200 },
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message === "replacement_not_found")
+      return failure(
+        400,
+        "replacement_not_found",
+        "The transaction you are replacing is not registered for this reservation.",
+      );
+    return failure(
+      503,
+      "database_unavailable",
+      "We couldn’t register this transaction right now. The foreign transfer is unchanged.",
+    );
+  }
 }

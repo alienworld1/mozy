@@ -3,7 +3,10 @@ import { chainInfo, blockProver } from "@gluwa/usc-sdk";
 import { attestcoinEnvironment as config } from "../../config/attestcoin-environment.js";
 import { ERC20_ABI } from "./constants.js";
 import { AttestcoinError } from "./errors.js";
-import { createCreditcoinProvider, createForeignProvider } from "./providers.js";
+import {
+  createCreditcoinProvider,
+  createForeignProvider,
+} from "./providers.js";
 import {
   loadRuntimeEnvironment,
   validatePublicConfiguration,
@@ -25,14 +28,31 @@ export interface PreflightResult {
     latestAttestedHash: string;
     proofBuilderAttestedHeight: string;
   };
-  contracts: Record<string, { address: string; code: "present" | "precompile-responsive" }>;
-  tokens: Record<string, { address: string; symbol: string; decimals: number; operatorBalance: string }>;
+  contracts: Record<
+    string,
+    { address: string; code: "present" | "precompile-responsive" }
+  >;
+  tokens: Record<
+    string,
+    {
+      address: string;
+      symbol: string;
+      decimals: number;
+      operatorBalance: string;
+    }
+  >;
   balances: { foreignGas: string; creditcoinGas: string };
 }
 
-export async function runPreflight(): Promise<{ runtime: RuntimeEnvironment; result: PreflightResult }> {
+export async function runPreflight(): Promise<{
+  runtime: RuntimeEnvironment;
+  result: PreflightResult;
+}> {
   await validatePublicConfiguration();
-  const runtime = loadRuntimeEnvironment({ requireSigner: true, requireProbe: true });
+  const runtime = loadRuntimeEnvironment({
+    requireSigner: true,
+    requireProbe: true,
+  });
 
   let wallet: Wallet;
   try {
@@ -52,53 +72,81 @@ export async function runPreflight(): Promise<{ runtime: RuntimeEnvironment; res
     readChainId(runtime.foreignRpcUrl, "Ethereum Sepolia"),
   ]);
 
-  requireChainId("Creditcoin CC3 Testnet", creditcoinChainId, config.creditcoin.chainId);
+  requireChainId(
+    "Creditcoin CC3 Testnet",
+    creditcoinChainId,
+    config.creditcoin.chainId,
+  );
   requireChainId("Ethereum Sepolia", foreignChainId, config.foreign.chainId);
 
   const creditcoinProvider = createCreditcoinProvider(runtime.creditcoinRpcUrl);
   const foreignProvider = createForeignProvider(runtime.foreignRpcUrl);
 
-  const sourceToken = new Contract(config.deliveryToken.address, ERC20_ABI, foreignProvider);
-  const settlementToken = new Contract(config.settlementToken.address, ERC20_ABI, creditcoinProvider);
+  const sourceToken = new Contract(
+    config.deliveryToken.address,
+    ERC20_ABI,
+    foreignProvider,
+  );
+  const settlementToken = new Contract(
+    config.settlementToken.address,
+    ERC20_ABI,
+    creditcoinProvider,
+  );
   // The SDK bundles the same ethers version under a private package path; the cast only bridges
   // TypeScript's private-class identity split. The runtime provider API is the pinned ethers v6 API.
   const sdkProvider = creditcoinProvider as unknown as ConstructorParameters<
     typeof chainInfo.PrecompileChainInfoProvider
   >[0];
-  const info = new chainInfo.PrecompileChainInfoProvider(sdkProvider, config.attestcoin.chainInfoAddress);
-  const prover = new blockProver.PrecompileBlockProver(sdkProvider, config.attestcoin.verifierAddress);
+  const info = new chainInfo.PrecompileChainInfoProvider(
+    sdkProvider,
+    config.attestcoin.chainInfoAddress,
+  );
+  const prover = new blockProver.PrecompileBlockProver(
+    sdkProvider,
+    config.attestcoin.verifierAddress,
+  );
 
-  const [foreignChecks, creditcoinChecks, proofBuilderAttestedHeight] = await Promise.all([
-    checkedNetworkGroup(
-      "Ethereum Sepolia",
-      () => Promise.all([
-        foreignProvider.getCode(config.deliveryToken.address),
-        sourceToken.symbol() as Promise<string>,
-        sourceToken.decimals() as Promise<bigint>,
-        sourceToken.balanceOf(operator) as Promise<bigint>,
-        foreignProvider.getBalance(operator),
-      ]),
-    ),
-    checkedNetworkGroup(
-      "Creditcoin CC3 Testnet",
-      () => Promise.all([
-        creditcoinProvider.getCode(config.settlementToken.address),
-        creditcoinProvider.getCode(runtime.probeAddress),
-        creditcoinProvider.getCode(config.attestcoin.decoderAddress),
-        info.getSupportedChains(),
-        info.getLatestAttestedHeightAndHash(config.foreign.sourceChainKey),
-        settlementToken.symbol() as Promise<string>,
-        settlementToken.decimals() as Promise<bigint>,
-        settlementToken.balanceOf(operator) as Promise<bigint>,
-        creditcoinProvider.getBalance(operator),
-        // An empty proof proves that the pinned precompile ABI responds, not that any receipt is valid.
-        prover.computeTransactionIndex({ root: `0x${"00".repeat(32)}`, siblings: [] }),
-      ]),
-    ),
-    checkedNetworkGroup("Attestcoin proof builder", () => readProofBuilderHeight(runtime.proofBuilderUrl)),
-  ]);
+  const [foreignChecks, creditcoinChecks, proofBuilderAttestedHeight] =
+    await Promise.all([
+      checkedNetworkGroup("Ethereum Sepolia", () =>
+        Promise.all([
+          foreignProvider.getCode(config.deliveryToken.address),
+          sourceToken.symbol() as Promise<string>,
+          sourceToken.decimals() as Promise<bigint>,
+          sourceToken.balanceOf(operator) as Promise<bigint>,
+          foreignProvider.getBalance(operator),
+        ]),
+      ),
+      checkedNetworkGroup("Creditcoin CC3 Testnet", () =>
+        Promise.all([
+          creditcoinProvider.getCode(config.settlementToken.address),
+          creditcoinProvider.getCode(runtime.probeAddress),
+          creditcoinProvider.getCode(config.attestcoin.decoderAddress),
+          info.getSupportedChains(),
+          info.getLatestAttestedHeightAndHash(config.foreign.sourceChainKey),
+          settlementToken.symbol() as Promise<string>,
+          settlementToken.decimals() as Promise<bigint>,
+          settlementToken.balanceOf(operator) as Promise<bigint>,
+          creditcoinProvider.getBalance(operator),
+          // An empty proof proves that the pinned precompile ABI responds, not that any receipt is valid.
+          prover.computeTransactionIndex({
+            root: `0x${"00".repeat(32)}`,
+            siblings: [],
+          }),
+        ]),
+      ),
+      checkedNetworkGroup("Attestcoin proof builder", () =>
+        readProofBuilderHeight(runtime.proofBuilderUrl),
+      ),
+    ]);
 
-  const [sourceTokenCode, sourceSymbol, sourceDecimals, sourceBalance, foreignGas] = foreignChecks;
+  const [
+    sourceTokenCode,
+    sourceSymbol,
+    sourceDecimals,
+    sourceBalance,
+    foreignGas,
+  ] = foreignChecks;
   const [
     settlementTokenCode,
     probeCode,
@@ -116,8 +164,14 @@ export async function runPreflight(): Promise<{ runtime: RuntimeEnvironment; res
   requireCode(probeCode, "ReceiptSemanticProbe");
   requireCode(decoderCode, "EvmV1Decoder");
 
-  const selectedChain = supportedChains.find((chain) => chain.chainKey === config.foreign.sourceChainKey);
-  if (!selectedChain || selectedChain.chainId !== config.foreign.chainId || !latestAttested.exists) {
+  const selectedChain = supportedChains.find(
+    (chain) => chain.chainKey === config.foreign.sourceChainKey,
+  );
+  if (
+    !selectedChain ||
+    selectedChain.chainId !== config.foreign.chainId ||
+    !latestAttested.exists
+  ) {
     throw new AttestcoinError(
       "Checking configuration",
       "configuration_error",
@@ -126,10 +180,25 @@ export async function runPreflight(): Promise<{ runtime: RuntimeEnvironment; res
     );
   }
 
-  requireTokenMetadata("delivery", sourceSymbol, Number(sourceDecimals), config.deliveryToken);
-  requireTokenMetadata("settlement", settlementSymbol, Number(settlementDecimals), config.settlementToken);
+  requireTokenMetadata(
+    "delivery",
+    sourceSymbol,
+    Number(sourceDecimals),
+    config.deliveryToken,
+  );
+  requireTokenMetadata(
+    "settlement",
+    settlementSymbol,
+    Number(settlementDecimals),
+    config.settlementToken,
+  );
 
-  if (foreignGas === 0n || creditcoinGas === 0n || sourceBalance === 0n || settlementBalance === 0n) {
+  if (
+    foreignGas === 0n ||
+    creditcoinGas === 0n ||
+    sourceBalance === 0n ||
+    settlementBalance === 0n
+  ) {
     throw new AttestcoinError(
       "Checking configuration",
       "funding_error",
@@ -145,8 +214,14 @@ export async function runPreflight(): Promise<{ runtime: RuntimeEnvironment; res
       configVersion: config.configVersion,
       operator,
       networks: {
-        creditcoin: { configuredChainId: config.creditcoin.chainId, connectedChainId: creditcoinChainId.toString() },
-        foreign: { configuredChainId: config.foreign.chainId, connectedChainId: foreignChainId.toString() },
+        creditcoin: {
+          configuredChainId: config.creditcoin.chainId,
+          connectedChainId: creditcoinChainId.toString(),
+        },
+        foreign: {
+          configuredChainId: config.foreign.chainId,
+          connectedChainId: foreignChainId.toString(),
+        },
       },
       sourceChain: {
         chainKey: selectedChain.chainKey,
@@ -156,8 +231,14 @@ export async function runPreflight(): Promise<{ runtime: RuntimeEnvironment; res
         proofBuilderAttestedHeight: proofBuilderAttestedHeight.toString(),
       },
       contracts: {
-        verifier: { address: config.attestcoin.verifierAddress, code: "precompile-responsive" },
-        chainInfo: { address: config.attestcoin.chainInfoAddress, code: "precompile-responsive" },
+        verifier: {
+          address: config.attestcoin.verifierAddress,
+          code: "precompile-responsive",
+        },
+        chainInfo: {
+          address: config.attestcoin.chainInfoAddress,
+          code: "precompile-responsive",
+        },
         decoder: { address: config.attestcoin.decoderAddress, code: "present" },
         probe: { address: getAddress(runtime.probeAddress), code: "present" },
       },
@@ -175,7 +256,10 @@ export async function runPreflight(): Promise<{ runtime: RuntimeEnvironment; res
           operatorBalance: settlementBalance.toString(),
         },
       },
-      balances: { foreignGas: foreignGas.toString(), creditcoinGas: creditcoinGas.toString() },
+      balances: {
+        foreignGas: foreignGas.toString(),
+        creditcoinGas: creditcoinGas.toString(),
+      },
     },
   };
 }
@@ -218,18 +302,30 @@ function requireTokenMetadata(
   }
 }
 
-async function readProofBuilderHeight(baseUrl: string): Promise<number> {
-  const endpoint = new URL(`/api/v1/attested-height/${config.foreign.sourceChainKey}`, baseUrl);
-  const response = await fetch(endpoint, { signal: AbortSignal.timeout(10_000) });
-  if (!response.ok) throw new Error(`proof builder returned HTTP ${response.status}`);
+export async function readProofBuilderHeight(baseUrl: string): Promise<number> {
+  const endpoint = new URL(
+    `/api/v1/attested-height/${config.foreign.sourceChainKey}`,
+    baseUrl,
+  );
+  const response = await fetch(endpoint, {
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok)
+    throw new Error(`proof builder returned HTTP ${response.status}`);
   const body = (await response.json()) as { attestedHeight?: unknown };
-  if (!Number.isSafeInteger(body.attestedHeight) || Number(body.attestedHeight) < 0) {
+  if (
+    !Number.isSafeInteger(body.attestedHeight) ||
+    Number(body.attestedHeight) < 0
+  ) {
     throw new Error("proof builder returned an invalid attested height");
   }
   return Number(body.attestedHeight);
 }
 
-async function readChainId(rpcUrl: string, networkName: string): Promise<bigint> {
+async function readChainId(
+  rpcUrl: string,
+  networkName: string,
+): Promise<bigint> {
   let response: Response | undefined;
   let lastError: unknown;
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -237,7 +333,12 @@ async function readChainId(rpcUrl: string, networkName: string): Promise<bigint>
       response = await fetch(rpcUrl, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_chainId", params: [] }),
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "eth_chainId",
+          params: [],
+        }),
         signal: AbortSignal.timeout(12_000),
       });
       break;
@@ -265,7 +366,10 @@ async function readChainId(rpcUrl: string, networkName: string): Promise<bigint>
     );
   }
 
-  const body = (await response.json()) as { result?: unknown; error?: { code?: unknown; message?: unknown } };
+  const body = (await response.json()) as {
+    result?: unknown;
+    error?: { code?: unknown; message?: unknown };
+  };
   if (body.error) {
     throw new AttestcoinError(
       `Checking ${networkName} RPC`,
@@ -287,12 +391,21 @@ async function readChainId(rpcUrl: string, networkName: string): Promise<bigint>
 
 function networkErrorCode(error: unknown): string | undefined {
   if (!error || typeof error !== "object") return undefined;
-  const candidate = error as { code?: unknown; cause?: { code?: unknown; errors?: Array<{ code?: unknown }> } };
-  const code = candidate.code ?? candidate.cause?.code ?? candidate.cause?.errors?.[0]?.code;
+  const candidate = error as {
+    code?: unknown;
+    cause?: { code?: unknown; errors?: Array<{ code?: unknown }> };
+  };
+  const code =
+    candidate.code ??
+    candidate.cause?.code ??
+    candidate.cause?.errors?.[0]?.code;
   return typeof code === "string" ? code : undefined;
 }
 
-async function checkedNetworkGroup<T>(name: string, operation: () => Promise<T>): Promise<T> {
+async function checkedNetworkGroup<T>(
+  name: string,
+  operation: () => Promise<T>,
+): Promise<T> {
   let lastError: unknown;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {

@@ -21,7 +21,10 @@ export async function inspectReceipt(
   expectation: TransferExpectation,
   authenticated: boolean,
 ): Promise<ReceiptEvidence> {
-  const [transaction, receipt] = await Promise.all([provider.getTransaction(hash), provider.getTransactionReceipt(hash)]);
+  const [transaction, receipt] = await Promise.all([
+    provider.getTransaction(hash),
+    provider.getTransactionReceipt(hash),
+  ]);
   if (!transaction || !receipt) {
     throw new AttestcoinError(
       "Waiting for source receipt",
@@ -39,7 +42,10 @@ export async function inspectReceipt(
       "Do not prove this receipt. Diagnose the source transaction and explicitly send a new transfer if needed.",
     );
   }
-  if (!transaction.to || getAddress(transaction.to) !== getAddress(expectation.token)) {
+  if (
+    !transaction.to ||
+    getAddress(transaction.to) !== getAddress(expectation.token)
+  ) {
     throw semanticError(
       "Delivery did not call the approved token contract directly.",
       "Use the selected ERC-20 transfer function directly; do not use a router or adapter.",
@@ -53,28 +59,49 @@ export async function inspectReceipt(
   }
   let transferCall;
   try {
-    transferCall = transferInterface.parseTransaction({ data: transaction.data, value: transaction.value });
+    transferCall = transferInterface.parseTransaction({
+      data: transaction.data,
+      value: transaction.value,
+    });
   } catch {
     transferCall = null;
   }
-  if (
-    transferCall?.name !== "transfer" ||
-    getAddress(transferCall.args[0] as string) !== getAddress(expectation.recipient) ||
-    (transferCall.args[1] as bigint) < BigInt(expectation.minimumAmount)
-  ) {
+  if (transferCall?.name !== "transfer") {
     throw semanticError(
       "Delivery did not call the approved token transfer function directly.",
       "Call transfer(recipient, amount) on the selected ERC-20 without a router, adapter, or alternate token function.",
     );
   }
+  if (
+    getAddress(transferCall.args[0] as string) !==
+    getAddress(expectation.recipient)
+  ) {
+    throw semanticError(
+      "Transfer recipient does not match the expected delivery wallet.",
+      "Use the exact buyer delivery address shown for this reservation.",
+    );
+  }
+  if ((transferCall.args[1] as bigint) < BigInt(expectation.minimumAmount)) {
+    throw semanticError(
+      "Transferred amount is below the required delivery amount.",
+      "Transfer at least the reserved amount in one ordinary ERC-20 transfer.",
+    );
+  }
 
   const canonicalLogs: MatchingTransfer[] = [];
   for (const log of receipt.logs) {
-    if (getAddress(log.address) !== getAddress(expectation.token) || log.topics[0]?.toLowerCase() !== TRANSFER_TOPIC) {
+    if (
+      getAddress(log.address) !== getAddress(expectation.token) ||
+      log.topics[0]?.toLowerCase() !== TRANSFER_TOPIC
+    ) {
       continue;
     }
     try {
-      const decoded = transferInterface.decodeEventLog("Transfer", log.data, log.topics);
+      const decoded = transferInterface.decodeEventLog(
+        "Transfer",
+        log.data,
+        log.topics,
+      );
       canonicalLogs.push({
         index: log.index,
         emitter: getAddress(log.address),
@@ -94,21 +121,27 @@ export async function inspectReceipt(
     );
   }
 
-  const senderLogs = canonicalLogs.filter((log) => log.from === getAddress(expectation.sender));
+  const senderLogs = canonicalLogs.filter(
+    (log) => log.from === getAddress(expectation.sender),
+  );
   if (senderLogs.length === 0) {
     throw semanticError(
       "Transfer sender does not match the expected solver address.",
       "Use the same disposable solver identity recorded for this transfer.",
     );
   }
-  const recipientLogs = senderLogs.filter((log) => log.to === getAddress(expectation.recipient));
+  const recipientLogs = senderLogs.filter(
+    (log) => log.to === getAddress(expectation.recipient),
+  );
   if (recipientLogs.length === 0) {
     throw semanticError(
       "Transfer recipient does not match the expected delivery wallet.",
       "Use the buyer delivery address recorded with the transfer; do not change the evidence artifact.",
     );
   }
-  const amountLogs = recipientLogs.filter((log) => log.amount >= BigInt(expectation.minimumAmount));
+  const amountLogs = recipientLogs.filter(
+    (log) => log.amount >= BigInt(expectation.minimumAmount),
+  );
   if (amountLogs.length === 0) {
     throw semanticError(
       "Transferred amount is below the required delivery amount.",
@@ -131,7 +164,11 @@ export async function inspectReceipt(
   }
   const transactionIndex = BigInt(receipt.index);
   const blockHeight = BigInt(receipt.blockNumber);
-  const replayIdentity = deriveReplayIdentity(BigInt(expectation.sourceChainKey), blockHeight, transactionIndex);
+  const replayIdentity = deriveReplayIdentity(
+    BigInt(expectation.sourceChainKey),
+    blockHeight,
+    transactionIndex,
+  );
 
   return {
     foreignTxHash: hash,
@@ -146,7 +183,11 @@ export async function inspectReceipt(
     transferTo: transfer.to,
     transferAmount: transfer.amount.toString(),
     sourceTime: authenticated
-      ? { kind: "authenticated-block-height", blockNumber: blockHeight.toString(), timestamp: "unavailable" }
+      ? {
+          kind: "authenticated-block-height",
+          blockNumber: blockHeight.toString(),
+          timestamp: "unavailable",
+        }
       : { kind: "unavailable", timestamp: "unavailable" },
     replayIdentity: {
       chainKey: expectation.sourceChainKey.toString(),
@@ -174,5 +215,10 @@ export function createExpectation(input: {
 }
 
 function semanticError(message: string, recovery: string): AttestcoinError {
-  return new AttestcoinError("Comparing receipt semantics", "semantic_mismatch", message, recovery);
+  return new AttestcoinError(
+    "Comparing receipt semantics",
+    "semantic_mismatch",
+    message,
+    recovery,
+  );
 }
