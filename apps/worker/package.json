@@ -1,0 +1,27 @@
+{
+  "name": "@mozy/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "test": "tsx --test src/**/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@gluwa/usc-sdk": "0.18.0",
+    "@mozy/chain-config": "workspace:*",
+    "@mozy/db": "workspace:*",
+    "dotenv": "17.4.2",
+    "drizzle-orm": "^0.44.5",
+    "ethers": "6.17.0",
+    "server-only": "^0.0.1",
+    "viem": "^2.47.6",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "4.22.4",
+    "typescript": "5.9.3"
+  }
+}
