@@ -2,14 +2,17 @@ import { Contract } from "ethers";
 import { releaseConfig } from "@mozy/chain-config";
 import {
   foreignTransactions,
+  buildSettlementReceiptProjection,
   getDatabase,
   heartbeat,
   mandates,
   markets,
   protocolEvents,
   reservations,
+  upsertSettlementReceipt,
+  type SettlementEventPayload,
 } from "@mozy/db";
-import { and, isNotNull, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { createCreditcoinProvider } from "../../../scripts/attestcoin/providers.js";
 import { loadContractArtifact } from "../../../scripts/protocol/artifacts.js";
 import type { workerConfig } from "./config.js";
@@ -40,6 +43,37 @@ export async function reconcileOnce(config: Config) {
     provider,
   );
   const block = BigInt(await provider.getBlockNumber());
+  const missingTimes = await db
+    .selectDistinct({ blockNumber: protocolEvents.blockNumber })
+    .from(protocolEvents)
+    .where(
+      and(
+        eq(protocolEvents.chainId, BigInt(releaseConfig.creditcoin.id)),
+        inArray(protocolEvents.contractAddress, [
+          releaseConfig.contracts.market.toLowerCase(),
+          releaseConfig.contracts.registry.toLowerCase(),
+          releaseConfig.contracts.settlement.toLowerCase(),
+        ]),
+        isNull(protocolEvents.occurredAt),
+        isNull(protocolEvents.orphanedAt),
+      ),
+    )
+    .limit(100);
+  await Promise.all(
+    missingTimes.map(async ({ blockNumber }) => {
+      const sourceBlock = await provider.getBlock(blockNumber);
+      if (!sourceBlock) return;
+      await db
+        .update(protocolEvents)
+        .set({ occurredAt: new Date(sourceBlock.timestamp * 1000) })
+        .where(
+          and(
+            eq(protocolEvents.chainId, BigInt(releaseConfig.creditcoin.id)),
+            eq(protocolEvents.blockNumber, blockNumber),
+          ),
+        );
+    }),
+  );
   const configuredMarket = (await registry.getMarket(
     BigInt(releaseConfig.marketId),
   )) as readonly unknown[];
@@ -179,6 +213,61 @@ export async function reconcileOnce(config: Config) {
           updatedAt: new Date(),
         },
       });
+    if (Number(reservation[11]) === 2) {
+      const settlementEvent = await db.query.protocolEvents.findFirst({
+        where: and(
+          eq(protocolEvents.chainId, BigInt(releaseConfig.creditcoin.id)),
+          eq(
+            protocolEvents.contractAddress,
+            releaseConfig.contracts.settlement.toLowerCase(),
+          ),
+          eq(protocolEvents.eventName, "ReservationSettled"),
+          eq(protocolEvents.reservationId, reservationId),
+          isNull(protocolEvents.orphanedAt),
+        ),
+        orderBy: [desc(protocolEvents.blockNumber), desc(protocolEvents.logIndex)],
+      });
+      const payload = settlementEvent?.payload as
+        | SettlementEventPayload
+        | undefined;
+      if (settlementEvent && payload) {
+        try {
+          const candidate = await db.query.foreignTransactions.findFirst({
+            where: and(
+              eq(
+                foreignTransactions.configVersion,
+                releaseConfig.configVersion,
+              ),
+              eq(foreignTransactions.reservationId, reservationId),
+              eq(
+                foreignTransactions.observedBlockNumber,
+                BigInt(payload.blockHeight),
+              ),
+              eq(
+                foreignTransactions.transactionIndex,
+                BigInt(payload.transactionIndex),
+              ),
+              eq(foreignTransactions.semanticStatus, "accepted"),
+            ),
+          });
+          if (candidate)
+            await upsertSettlementReceipt(
+              db,
+              buildSettlementReceiptProjection({
+                configVersion: releaseConfig.configVersion,
+                event: {
+                  transactionHash: settlementEvent.transactionHash,
+                  blockNumber: settlementEvent.blockNumber,
+                  payload,
+                },
+                candidate,
+              }),
+            );
+        } catch {
+          // Invalid indexed payloads remain unavailable and are retried after re-indexing.
+        }
+      }
+    }
   }
   await heartbeat(db, releaseConfig.configVersion, "reconciler");
   return reservationIds.length;

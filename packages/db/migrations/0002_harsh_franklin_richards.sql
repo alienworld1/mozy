@@ -1,0 +1,2 @@
+ALTER TABLE "mozy"."protocol_events" ADD COLUMN "occurred_at" timestamp with time zone;--> statement-breakpoint
+CREATE INDEX "protocol_events_activity_idx" ON "mozy"."protocol_events" USING btree ("chain_id","occurred_at","block_number","log_index");

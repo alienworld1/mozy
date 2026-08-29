@@ -4,9 +4,103 @@ import type { Database } from "./client";
 import {
   foreignTransactions,
   proofJobs,
+  settlementReceipts,
   syncCursors,
   type ProofJobStatus,
 } from "./schema";
+
+export type SettlementReceiptProjection = typeof settlementReceipts.$inferInsert;
+
+export type SettlementEventPayload = {
+  reservationId: string;
+  mandateId: string;
+  replayIdentity: string;
+  sourceChainKey: string;
+  blockHeight: string;
+  transactionIndex: string;
+  transferLogIndex: string;
+  token: string;
+  solver: string;
+  recipient: string;
+  relayer: string;
+  deliveredAmount: string;
+  creditedAmount: string;
+  lockedPayout: string;
+  returnedBond: string;
+};
+
+export function buildSettlementReceiptProjection(input: {
+  configVersion: string;
+  event: {
+    transactionHash: string;
+    blockNumber: bigint;
+    payload: SettlementEventPayload;
+  };
+  candidate: { id: bigint; transactionHash: string };
+}): SettlementReceiptProjection {
+  const { payload } = input.event;
+  return {
+    configVersion: input.configVersion,
+    reservationId: payload.reservationId,
+    mandateId: payload.mandateId,
+    foreignTransactionId: input.candidate.id,
+    foreignTxHash: input.candidate.transactionHash,
+    sourceChainKey: BigInt(payload.sourceChainKey),
+    blockHeight: BigInt(payload.blockHeight),
+    transactionIndex: BigInt(payload.transactionIndex),
+    transferLogIndex: BigInt(payload.transferLogIndex),
+    replayIdentity: payload.replayIdentity.toLowerCase(),
+    token: payload.token.toLowerCase(),
+    solver: payload.solver.toLowerCase(),
+    recipient: payload.recipient.toLowerCase(),
+    relayer: payload.relayer.toLowerCase(),
+    deliveredAmount: payload.deliveredAmount,
+    creditedAmount: payload.creditedAmount,
+    lockedPayout: payload.lockedPayout,
+    returnedBond: payload.returnedBond,
+    creditcoinSettlementTxHash: input.event.transactionHash.toLowerCase(),
+    settlementBlockNumber: input.event.blockNumber,
+  };
+}
+
+export async function upsertSettlementReceipt(
+  db: Pick<Database, "insert">,
+  receipt: SettlementReceiptProjection,
+) {
+  const now = new Date();
+  const [row] = await db
+    .insert(settlementReceipts)
+    .values({ ...receipt, projectedAt: now, updatedAt: now })
+    .onConflictDoUpdate({
+      target: [
+        settlementReceipts.configVersion,
+        settlementReceipts.reservationId,
+      ],
+      set: {
+        mandateId: receipt.mandateId,
+        foreignTransactionId: receipt.foreignTransactionId,
+        foreignTxHash: receipt.foreignTxHash,
+        sourceChainKey: receipt.sourceChainKey,
+        blockHeight: receipt.blockHeight,
+        transactionIndex: receipt.transactionIndex,
+        transferLogIndex: receipt.transferLogIndex,
+        replayIdentity: receipt.replayIdentity,
+        token: receipt.token,
+        solver: receipt.solver,
+        recipient: receipt.recipient,
+        relayer: receipt.relayer,
+        deliveredAmount: receipt.deliveredAmount,
+        creditedAmount: receipt.creditedAmount,
+        lockedPayout: receipt.lockedPayout,
+        returnedBond: receipt.returnedBond,
+        creditcoinSettlementTxHash: receipt.creditcoinSettlementTxHash,
+        settlementBlockNumber: receipt.settlementBlockNumber,
+        updatedAt: now,
+      },
+    })
+    .returning();
+  return row;
+}
 
 export type DurableCandidateInput = {
   configVersion: string;

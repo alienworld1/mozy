@@ -262,6 +262,7 @@ export const protocolEvents = mozy.table(
     confirmedAtBlock: bigint("confirmed_at_block", {
       mode: "bigint",
     }).notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true, mode: "date" }),
     orphanedAt: timestamp("orphaned_at", { withTimezone: true, mode: "date" }),
     projectedAt: now("projected_at"),
   },
@@ -272,6 +273,12 @@ export const protocolEvents = mozy.table(
     index("protocol_events_entity_idx").on(
       table.reservationId,
       table.mandateId,
+    ),
+    index("protocol_events_activity_idx").on(
+      table.chainId,
+      table.occurredAt,
+      table.blockNumber,
+      table.logIndex,
     ),
   ],
 );

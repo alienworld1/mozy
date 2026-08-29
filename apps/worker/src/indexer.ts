@@ -9,6 +9,9 @@ import {
   reservations,
   settlementReceipts,
   syncCursors,
+  upsertSettlementReceipt,
+  buildSettlementReceiptProjection,
+  type SettlementEventPayload,
 } from "@mozy/db";
 import { and, eq, gte, isNull } from "drizzle-orm";
 import { createCreditcoinProvider } from "../../../scripts/attestcoin/providers.js";
@@ -106,6 +109,16 @@ export async function indexOnce(config: Config) {
         return [];
       }
     }),
+  );
+  const blockTimestamps = new Map(
+    await Promise.all(
+      [...new Set(decoded.map((event) => event.log.blockNumber))].map(
+        async (blockNumber) => {
+          const block = await provider.getBlock(blockNumber);
+          return [blockNumber, block ? new Date(block.timestamp * 1000) : null] as const;
+        },
+      ),
+    ),
   );
   const reservationIds = new Set(
     decoded.flatMap((event) =>
@@ -231,6 +244,7 @@ export async function indexOnce(config: Config) {
             : null,
           payload,
           confirmedAtBlock: safeHead,
+          occurredAt: blockTimestamps.get(log.blockNumber) ?? null,
         })
         .onConflictDoNothing();
       if (name === "ReservationSettled" && payload.reservationId) {
@@ -252,43 +266,18 @@ export async function indexOnce(config: Config) {
           ),
         });
         if (candidate)
-          await tx
-            .insert(settlementReceipts)
-            .values({
+          await upsertSettlementReceipt(
+            tx,
+            buildSettlementReceiptProjection({
               configVersion: releaseConfig.configVersion,
-              reservationId: String(payload.reservationId),
-              mandateId: String(payload.mandateId),
-              foreignTransactionId: candidate.id,
-              foreignTxHash: candidate.transactionHash,
-              sourceChainKey: BigInt(String(payload.sourceChainKey)),
-              blockHeight: BigInt(String(payload.blockHeight)),
-              transactionIndex: BigInt(String(payload.transactionIndex)),
-              transferLogIndex: BigInt(String(payload.transferLogIndex)),
-              replayIdentity: String(payload.replayIdentity).toLowerCase(),
-              token: String(payload.token).toLowerCase(),
-              solver: String(payload.solver).toLowerCase(),
-              recipient: String(payload.recipient).toLowerCase(),
-              relayer: String(payload.relayer).toLowerCase(),
-              deliveredAmount: String(payload.deliveredAmount),
-              creditedAmount: String(payload.creditedAmount),
-              lockedPayout: String(payload.lockedPayout),
-              returnedBond: String(payload.returnedBond),
-              creditcoinSettlementTxHash: log.transactionHash.toLowerCase(),
-              settlementBlockNumber: BigInt(log.blockNumber),
-              projectedAt: new Date(),
-              updatedAt: new Date(),
-            })
-            .onConflictDoUpdate({
-              target: [
-                settlementReceipts.configVersion,
-                settlementReceipts.reservationId,
-              ],
-              set: {
-                creditcoinSettlementTxHash: log.transactionHash.toLowerCase(),
-                settlementBlockNumber: BigInt(log.blockNumber),
-                updatedAt: new Date(),
+              event: {
+                transactionHash: log.transactionHash,
+                blockNumber: BigInt(log.blockNumber),
+                payload: payload as unknown as SettlementEventPayload,
               },
-            });
+              candidate,
+            }),
+          );
       }
     }
     for (const row of reservationRows)

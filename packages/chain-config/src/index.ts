@@ -118,6 +118,7 @@ export const releaseConfig = Object.freeze({
     ...deliveryChain,
     role: "Delivery network" as const,
     sourceChainKey: BigInt(attestcoinEnvironment.foreign.sourceChainKey),
+    mozyContracts: [] as readonly `0x${string}`[],
   },
   deliveryToken: {
     address: address.parse(attestcoinEnvironment.deliveryToken.address),
