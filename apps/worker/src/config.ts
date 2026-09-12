@@ -1,3 +1,4 @@
+import { hostname } from "node:os";
 import { z } from "zod";
 
 const schema = z.object({
@@ -13,6 +14,7 @@ export function workerConfig() {
   const value = schema.parse(process.env);
   return {
     ...value,
-    MOZY_WORKER_ID: value.MOZY_WORKER_ID ?? `worker-${process.pid}`,
+    MOZY_WORKER_ID:
+      value.MOZY_WORKER_ID ?? `worker-${hostname()}-${process.pid}`,
   };
 }

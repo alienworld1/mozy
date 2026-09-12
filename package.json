@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
   "packageManager": "pnpm@11.17.0",
   "scripts": {
     "web:dev": "pnpm --filter @mozy/web dev",
@@ -32,6 +35,7 @@
     "protocol:evidence:check": "node --import tsx scripts/protocol/cli.ts evidence-check",
     "protocol:inspect": "node --import tsx scripts/protocol/cli.ts inspect",
     "worker:dev": "pnpm --filter @mozy/worker dev",
+    "worker:start": "pnpm --filter @mozy/worker start",
     "worker:test": "pnpm --filter @mozy/worker test",
     "worker:typecheck": "pnpm --filter @mozy/worker typecheck",
     "db:generate": "pnpm --filter @mozy/db generate",

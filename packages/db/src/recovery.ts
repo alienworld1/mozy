@@ -1,5 +1,6 @@
 export const publicReasonClasses = [
   "source_transaction_failed",
+  "indirect_token_call",
   "wrong_token",
   "wrong_sender",
   "wrong_recipient",
@@ -18,7 +19,10 @@ export type PublicReasonClass = (typeof publicReasonClasses)[number];
 export const publicReasonMessages: Record<PublicReasonClass, string> = {
   source_transaction_failed:
     "Delivery not accepted. The transaction did not succeed.",
-  wrong_token: "Delivery not accepted. Wrong token contract.",
+  indirect_token_call:
+    "Delivery not accepted. Smart-account or batched execution is not supported; send a direct ERC-20 transfer.",
+  wrong_token:
+    "Delivery not accepted. The transaction did not call the required token contract directly.",
   wrong_sender:
     "Delivery not accepted. The transfer was not sent by the reserved solver.",
   wrong_recipient: "Delivery not accepted. Wrong delivery wallet.",
@@ -43,6 +47,8 @@ export const publicReasonMessages: Record<PublicReasonClass, string> = {
 export function classifyPublicReason(value: string): PublicReasonClass {
   if (/did not succeed|SourceReceiptUnsuccessful/i.test(value))
     return "source_transaction_failed";
+  if (/indirect or delegated token execution|smart-account|batched execution/i.test(value))
+    return "indirect_token_call";
   if (/approved token|token contract|WrongDeliveryToken|TransactionTargetMismatch/i.test(value))
     return "wrong_token";
   if (/sender|WrongDeliverySender/i.test(value)) return "wrong_sender";

@@ -1,0 +1,29 @@
+services:
+  - type: worker
+    name: mozy-worker
+    runtime: node
+    region: singapore
+    numInstances: 1
+    maxShutdownDelaySeconds: 90
+    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    preDeployCommand: pnpm db:migrate
+    startCommand: pnpm worker:start
+    envVars:
+      - key: NODE_VERSION
+        value: 24.13.0
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_MIGRATION_URL
+        sync: false
+      - key: CREDITCOIN_RPC_URL
+        value: https://rpc.cc3-testnet.creditcoin.network
+      - key: FOREIGN_RPC_URL
+        value: https://ethereum-sepolia-rpc.publicnode.com
+      - key: ATTESTCOIN_PROOF_BUILDER_URL
+        value: https://prover.cc3-testnet.creditcoin.network
+      - key: MOZY_RELAYER_PRIVATE_KEY
+        sync: false
+      - key: MOZY_INDEXER_CONFIRMATIONS
+        value: "2"
+      - key: MOZY_INDEXER_CHUNK_SIZE
+        value: "1000"

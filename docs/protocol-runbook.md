@@ -158,7 +158,7 @@ Apply the committed private-schema migration with a direct or session Postgres c
 DATABASE_MIGRATION_URL=<direct-or-session-url> pnpm db:migrate
 ```
 
-The web and worker runtimes use `DATABASE_URL` through the Supabase transaction pooler with prepared statements disabled. Keep the `mozy` schema out of the Supabase Data API. Configure `MOZY_RELAYER_PRIVATE_KEY` with a dedicated disposable CC3-only testnet account holding only enough tCTC for settlements; never reuse a buyer, solver, deployer, admin, or faucet key.
+The Vercel web runtime uses `DATABASE_URL` through the Supabase transaction pooler with prepared statements disabled. The persistent worker uses a direct connection when IPv6 is available or the session pooler on IPv4-only hosting. Keep the `mozy` schema out of the Supabase Data API. Configure `MOZY_RELAYER_PRIVATE_KEY` with a dedicated disposable CC3-only testnet account holding only enough tCTC for settlements; never reuse a buyer, solver, deployer, admin, or faucet key.
 
 Start the restart-safe proof worker, event indexer, and reconciler in one process:
 

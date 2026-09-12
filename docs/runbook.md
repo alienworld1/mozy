@@ -42,7 +42,7 @@ DATABASE_MIGRATION_URL=<direct-or-session-url> pnpm db:migrate
 pnpm db:test
 ```
 
-The web and worker use `DATABASE_URL` through the transaction pooler with prepared statements disabled. Keep the private `mozy` schema outside the Supabase Data API. Migration failure is a setup error: correct the connection or schema permissions; do not skip migrations or hand-edit projection rows.
+The Vercel web runtime uses `DATABASE_URL` through the transaction pooler with prepared statements disabled. The persistent worker uses a direct connection when IPv6 is available or the session pooler on IPv4-only hosting. Keep the private `mozy` schema outside the Supabase Data API. Migration failure is a setup error: correct the connection or schema permissions; do not skip migrations or hand-edit projection rows. See [`deployment.md`](deployment.md) for the complete production setup.
 
 ## Inspect release configuration and evidence
 

@@ -12,7 +12,7 @@ export function getDatabase() {
   const client =
     globalDatabase.mozySql ??
     postgres(connectionString, { prepare: false, max: 5 });
-  if (process.env.NODE_ENV !== "production") globalDatabase.mozySql = client;
+  globalDatabase.mozySql = client;
   return drizzle(client, { schema });
 }
 

@@ -42,10 +42,43 @@ export async function inspectReceipt(
       "Do not prove this receipt. Diagnose the source transaction and explicitly send a new transfer if needed.",
     );
   }
+
+  const canonicalLogs: MatchingTransfer[] = [];
+  for (const log of receipt.logs) {
+    if (
+      getAddress(log.address) !== getAddress(expectation.token) ||
+      log.topics[0]?.toLowerCase() !== TRANSFER_TOPIC
+    ) {
+      continue;
+    }
+    try {
+      const decoded = transferInterface.decodeEventLog(
+        "Transfer",
+        log.data,
+        log.topics,
+      );
+      canonicalLogs.push({
+        index: log.index,
+        emitter: getAddress(log.address),
+        from: getAddress(decoded.from as string),
+        to: getAddress(decoded.to as string),
+        amount: decoded.value as bigint,
+      });
+    } catch {
+      // A log with the signature but malformed canonical fields is not qualifying.
+    }
+  }
+
   if (
     !transaction.to ||
     getAddress(transaction.to) !== getAddress(expectation.token)
   ) {
+    if (canonicalLogs.length > 0) {
+      throw semanticError(
+        "Delivery used indirect or delegated token execution instead of a direct token call.",
+        "Turn off smart-account batching or delegated execution, then call transfer(recipient, amount) directly on the selected ERC-20.",
+      );
+    }
     throw semanticError(
       "Delivery did not call the approved token contract directly.",
       "Use the selected ERC-20 transfer function directly; do not use a router or adapter.",
@@ -86,32 +119,6 @@ export async function inspectReceipt(
       "Transferred amount is below the required delivery amount.",
       "Transfer at least the reserved amount in one ordinary ERC-20 transfer.",
     );
-  }
-
-  const canonicalLogs: MatchingTransfer[] = [];
-  for (const log of receipt.logs) {
-    if (
-      getAddress(log.address) !== getAddress(expectation.token) ||
-      log.topics[0]?.toLowerCase() !== TRANSFER_TOPIC
-    ) {
-      continue;
-    }
-    try {
-      const decoded = transferInterface.decodeEventLog(
-        "Transfer",
-        log.data,
-        log.topics,
-      );
-      canonicalLogs.push({
-        index: log.index,
-        emitter: getAddress(log.address),
-        from: getAddress(decoded.from as string),
-        to: getAddress(decoded.to as string),
-        amount: decoded.value as bigint,
-      });
-    } catch {
-      // A log with the signature but malformed canonical fields is not qualifying.
-    }
   }
 
   if (canonicalLogs.length === 0) {

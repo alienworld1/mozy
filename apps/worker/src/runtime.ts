@@ -1,5 +1,5 @@
 import { releaseConfig } from "@mozy/chain-config";
-import { getDatabase, heartbeat } from "@mozy/db";
+import { closeDatabase, getDatabase, heartbeat } from "@mozy/db";
 import { workerConfig } from "./config.js";
 import { indexOnce } from "./indexer.js";
 import { processOneJob } from "./proof-worker.js";
@@ -15,23 +15,29 @@ process.once("SIGINT", () => {
 });
 
 async function run() {
-  let nextIndex = 0;
-  let nextReconcile = 0;
-  while (!stopping) {
-    const now = Date.now();
-    await heartbeat(getDatabase(), releaseConfig.configVersion, "worker").catch(
-      () => undefined,
-    );
-    if (now >= nextIndex) {
-      await indexOnce(config).catch(() => 0);
-      nextIndex = now + 15_000;
+  try {
+    let nextIndex = 0;
+    let nextReconcile = 0;
+    while (!stopping) {
+      const now = Date.now();
+      await heartbeat(
+        getDatabase(),
+        releaseConfig.configVersion,
+        "worker",
+      ).catch(() => undefined);
+      if (now >= nextIndex) {
+        await indexOnce(config).catch(() => 0);
+        nextIndex = now + 15_000;
+      }
+      if (now >= nextReconcile) {
+        await reconcileOnce(config).catch(() => 0);
+        nextReconcile = now + 60_000;
+      }
+      const processed = await processOneJob(config).catch(() => false);
+      if (!processed) await delay(5_000);
     }
-    if (now >= nextReconcile) {
-      await reconcileOnce(config).catch(() => 0);
-      nextReconcile = now + 60_000;
-    }
-    const processed = await processOneJob(config).catch(() => false);
-    if (!processed) await delay(5_000);
+  } finally {
+    await closeDatabase();
   }
 }
 

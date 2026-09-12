@@ -24,6 +24,15 @@ export function CandidateRecovery({
       <p className="mt-3 text-sm leading-6 text-ink-secondary">
         Reservation R{data.reservation.id.toString()} is still Active. Its payout and bond remain locked.
       </p>
+      {candidate.reasonClass === "wrong_token" ||
+      candidate.reasonClass === "indirect_token_call" ? (
+        <p className="mt-3 text-sm leading-6 text-ink-secondary">
+          A token event is not enough for this release. The transaction&apos;s
+          outer target must be the TEST contract and its calldata must be a
+          direct transfer. Turn off smart-account transactions, batching, or
+          delegated execution before sending the replacement.
+        </p>
+      ) : null}
       <dl className="mt-4 grid gap-3 border-y border-line py-4 text-xs sm:grid-cols-2">
         <div><dt className="text-ink-tertiary">Required token</dt><dd className="mt-1 font-mono break-all">{releaseConfig.deliveryToken.address}</dd></div>
         <div><dt className="text-ink-tertiary">Required sender</dt><dd className="mt-1 font-mono break-all">{data.reservation.solver}</dd></div>

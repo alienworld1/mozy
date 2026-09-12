@@ -21,6 +21,10 @@ describe("public terminal reason mapping", () => {
   const cases = [
     ["The source transaction was included but did not succeed.", "source_transaction_failed"],
     ["Delivery did not call the approved token contract directly.", "wrong_token"],
+    [
+      "Delivery used indirect or delegated token execution instead of a direct token call.",
+      "indirect_token_call",
+    ],
     ["Source transaction sender does not match the expected solver address.", "wrong_sender"],
     ["Transfer recipient does not match the expected delivery wallet.", "wrong_recipient"],
     ["Transferred amount is below the required delivery amount.", "underdelivery"],
@@ -34,6 +38,7 @@ describe("public terminal reason mapping", () => {
     it(`maps ${reasonClass}`, () => {
       const semanticMessages = new Set([
         "source_transaction_failed",
+        "indirect_token_call",
         "wrong_token",
         "wrong_sender",
         "wrong_recipient",

@@ -26,6 +26,7 @@ import { needsCanonicalReservationRefresh } from "./verification";
 import { useReceiptAvailability } from "@/features/receipts/useReceiptAvailability";
 import { ReservationRecovery } from "./ReservationRecovery";
 import { CandidateRecovery } from "./CandidateRecovery";
+import { DirectTransferWarning } from "./DirectTransferWarning";
 
 export function ReservationWorkspaceContent({
   data,
@@ -429,11 +430,12 @@ export function ReservationWorkspaceContent({
           ) : null}
           {active && connectedSolver && onForeignNetwork && (!activeCandidate || replacementAvailable) ? (
             <div className="mt-6">
+              <DirectTransferWarning />
               <button
                 type="button"
                 disabled={deliveryDisabled}
                 onClick={() => void sendDelivery()}
-                className="min-h-11 w-full rounded-control bg-signal px-4 text-sm font-medium text-paper-raised outline-none hover:bg-signal-strong disabled:cursor-not-allowed disabled:bg-line-emphasis focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
+                className="mt-4 min-h-11 w-full rounded-control bg-signal px-4 text-sm font-medium text-paper-raised outline-none hover:bg-signal-strong disabled:cursor-not-allowed disabled:bg-line-emphasis focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
               >
                 {replacementAvailable ? "Send replacement" : `Send ${amount} ${releaseConfig.deliveryToken.symbol}`}
               </button>

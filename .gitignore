@@ -70,3 +70,4 @@ mockup*
 node_modules/
 out/
 cache/
+test-results/

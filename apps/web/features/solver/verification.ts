@@ -13,6 +13,7 @@ export type VerificationPhase = z.infer<typeof verificationPhaseSchema>;
 
 export const publicReasonClassSchema = z.enum([
   "source_transaction_failed",
+  "indirect_token_call",
   "wrong_token",
   "wrong_sender",
   "wrong_recipient",
